@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "index.mjs": {
+      "runtime": "nodejs20.x"
+    }
+  },
+  "builds": [
+    {
+      "src": ".mastra/output/**",
+      "use": "@vercel/static"
+    }
+  ]
+}
