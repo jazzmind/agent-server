@@ -7,3 +7,10 @@ dist
 *.db
 *.db-*
 .vercel
+
+# Authentication
+keys/
+servers.json
+jwks/
+
+/src/generated/prisma

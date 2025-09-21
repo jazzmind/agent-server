@@ -3,6 +3,9 @@ import { Agent } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
 import { PostgresStore } from '@mastra/pg';
 import { weatherTool } from '../tools/weather-tool';
+import { z } from 'zod';
+import { getAccessToken } from "../utils";
+import { createTool } from '@mastra/core/tools';
 
 export const weatherAgent = new Agent({
   name: 'Weather Agent',
@@ -20,11 +23,31 @@ export const weatherAgent = new Agent({
 
       Use the weatherTool to fetch current weather data.
 `,
-  model: openai('gpt-4o-mini'),
-  tools: { weatherTool },
+  model: openai('gpt-5-mini'),
+  tools: { 
+    weatherTool,
+    getAccessToken: createTool({
+      id: "getAccessToken",
+      description: "Get access token for reading tickets",
+      inputSchema: z.object({}),
+      outputSchema: z.object({
+        authToken: z.string(),
+      }),
+      execute: async () => {
+        const clientId = process.env.CLIENT_ID || "weather-agent";
+        const token = await getAccessToken(
+          clientId,
+          "https://tools.local/weather", [
+          "weather.read",
+        ]);
+        return { authToken: token };
+      },
+    }),
+   },
   memory: new Memory({
     storage: new PostgresStore({
       connectionString: process.env.DATABASE_URL!,
     }),
   }),
+
 });
