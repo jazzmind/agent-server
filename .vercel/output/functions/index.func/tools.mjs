@@ -1,3 +1,3 @@
-import * as tool0 from './tools/bc7672a8-0c74-4675-b549-c0f681f62138.mjs';
+import * as tool0 from './tools/e88c085b-b46e-4643-ae79-5bcc8657b1ba.mjs';
 
 export const tools = [tool0]
