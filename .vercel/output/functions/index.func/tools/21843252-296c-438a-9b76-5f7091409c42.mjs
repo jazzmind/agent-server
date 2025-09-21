@@ -5,8 +5,6 @@ import 'node:url';
 import 'node:path';
 import 'node:module';
 import 'events';
-import 'pino';
-import 'pino-pretty';
 import 'util';
 import 'path';
 import 'os';

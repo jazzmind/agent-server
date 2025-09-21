@@ -4,8 +4,6 @@ import cjsUrl from 'node:url';
 import cjsPath from 'node:path';
 import cjsModule from 'node:module';
 import EventEmitter from 'events';
-import pino from 'pino';
-import pretty from 'pino-pretty';
 import require$$0 from 'util';
 import require$$2 from 'path';
 import require$$1 from 'os';
@@ -2408,99 +2406,6 @@ function createTool(opts) {
 function isVercelTool(tool) {
   return !!(tool && !(tool instanceof Tool) && "parameters" in tool);
 }
-
-// src/logger/constants.ts
-var RegisteredLogger = {
-  AGENT: "AGENT",
-  AI_TRACING: "AI_TRACING",
-  WORKFLOW: "WORKFLOW",
-  LLM: "LLM"};
-var LogLevel = {
-  DEBUG: "debug",
-  INFO: "info",
-  WARN: "warn",
-  ERROR: "error"};
-
-// src/logger/logger.ts
-var MastraLogger = class {
-  name;
-  level;
-  transports;
-  constructor(options = {}) {
-    this.name = options.name || "Mastra";
-    this.level = options.level || LogLevel.ERROR;
-    this.transports = new Map(Object.entries(options.transports || {}));
-  }
-  getTransports() {
-    return this.transports;
-  }
-  trackException(_error) {
-  }
-  async getLogs(transportId, params) {
-    if (!transportId || !this.transports.has(transportId)) {
-      return { logs: [], total: 0, page: params?.page ?? 1, perPage: params?.perPage ?? 100, hasMore: false };
-    }
-    return this.transports.get(transportId).getLogs(params) ?? {
-      logs: [],
-      total: 0,
-      page: params?.page ?? 1,
-      perPage: params?.perPage ?? 100,
-      hasMore: false
-    };
-  }
-  async getLogsByRunId({
-    transportId,
-    runId,
-    fromDate,
-    toDate,
-    logLevel,
-    filters,
-    page,
-    perPage
-  }) {
-    if (!transportId || !this.transports.has(transportId) || !runId) {
-      return { logs: [], total: 0, page: page ?? 1, perPage: perPage ?? 100, hasMore: false };
-    }
-    return this.transports.get(transportId).getLogsByRunId({ runId, fromDate, toDate, logLevel, filters, page, perPage }) ?? {
-      logs: [],
-      total: 0,
-      page: page ?? 1,
-      perPage: perPage ?? 100,
-      hasMore: false
-    };
-  }
-};
-var ConsoleLogger = class extends MastraLogger {
-  constructor(options = {}) {
-    super(options);
-  }
-  debug(message, ...args) {
-    if (this.level === LogLevel.DEBUG) {
-      console.info(message, ...args);
-    }
-  }
-  info(message, ...args) {
-    if (this.level === LogLevel.INFO || this.level === LogLevel.DEBUG) {
-      console.info(message, ...args);
-    }
-  }
-  warn(message, ...args) {
-    if (this.level === LogLevel.WARN || this.level === LogLevel.INFO || this.level === LogLevel.DEBUG) {
-      console.warn(message, ...args);
-    }
-  }
-  error(message, ...args) {
-    if (this.level === LogLevel.ERROR || this.level === LogLevel.WARN || this.level === LogLevel.INFO || this.level === LogLevel.DEBUG) {
-      console.error(message, ...args);
-    }
-  }
-  async getLogs(_transportId, _params) {
-    return { logs: [], total: 0, page: _params?.page ?? 1, perPage: _params?.perPage ?? 100, hasMore: false };
-  }
-  async getLogsByRunId(_args) {
-    return { logs: [], total: 0, page: _args.page ?? 1, perPage: _args.perPage ?? 100, hasMore: false };
-  }
-};
 
 var util$3;
 (function (util) {
@@ -14572,6 +14477,99 @@ function preprocess(fn, schema) {
 const __filename$2 = cjsUrl.fileURLToPath(import.meta.url);
 cjsPath.dirname(__filename$2);
 cjsModule.createRequire(import.meta.url);
+// src/logger/constants.ts
+var RegisteredLogger = {
+  AGENT: "AGENT",
+  AI_TRACING: "AI_TRACING",
+  WORKFLOW: "WORKFLOW",
+  LLM: "LLM"};
+var LogLevel = {
+  DEBUG: "debug",
+  INFO: "info",
+  WARN: "warn",
+  ERROR: "error"};
+
+// src/logger/logger.ts
+var MastraLogger = class {
+  name;
+  level;
+  transports;
+  constructor(options = {}) {
+    this.name = options.name || "Mastra";
+    this.level = options.level || LogLevel.ERROR;
+    this.transports = new Map(Object.entries(options.transports || {}));
+  }
+  getTransports() {
+    return this.transports;
+  }
+  trackException(_error) {
+  }
+  async getLogs(transportId, params) {
+    if (!transportId || !this.transports.has(transportId)) {
+      return { logs: [], total: 0, page: params?.page ?? 1, perPage: params?.perPage ?? 100, hasMore: false };
+    }
+    return this.transports.get(transportId).getLogs(params) ?? {
+      logs: [],
+      total: 0,
+      page: params?.page ?? 1,
+      perPage: params?.perPage ?? 100,
+      hasMore: false
+    };
+  }
+  async getLogsByRunId({
+    transportId,
+    runId,
+    fromDate,
+    toDate,
+    logLevel,
+    filters,
+    page,
+    perPage
+  }) {
+    if (!transportId || !this.transports.has(transportId) || !runId) {
+      return { logs: [], total: 0, page: page ?? 1, perPage: perPage ?? 100, hasMore: false };
+    }
+    return this.transports.get(transportId).getLogsByRunId({ runId, fromDate, toDate, logLevel, filters, page, perPage }) ?? {
+      logs: [],
+      total: 0,
+      page: page ?? 1,
+      perPage: perPage ?? 100,
+      hasMore: false
+    };
+  }
+};
+var ConsoleLogger = class extends MastraLogger {
+  constructor(options = {}) {
+    super(options);
+  }
+  debug(message, ...args) {
+    if (this.level === LogLevel.DEBUG) {
+      console.info(message, ...args);
+    }
+  }
+  info(message, ...args) {
+    if (this.level === LogLevel.INFO || this.level === LogLevel.DEBUG) {
+      console.info(message, ...args);
+    }
+  }
+  warn(message, ...args) {
+    if (this.level === LogLevel.WARN || this.level === LogLevel.INFO || this.level === LogLevel.DEBUG) {
+      console.warn(message, ...args);
+    }
+  }
+  error(message, ...args) {
+    if (this.level === LogLevel.ERROR || this.level === LogLevel.WARN || this.level === LogLevel.INFO || this.level === LogLevel.DEBUG) {
+      console.error(message, ...args);
+    }
+  }
+  async getLogs(_transportId, _params) {
+    return { logs: [], total: 0, page: _params?.page ?? 1, perPage: _params?.perPage ?? 100, hasMore: false };
+  }
+  async getLogsByRunId(_args) {
+    return { logs: [], total: 0, page: _args.page ?? 1, perPage: _args.perPage ?? 100, hasMore: false };
+  }
+};
+
 // src/base.ts
 var MastraBase = class {
   component = RegisteredLogger.LLM;
@@ -41139,55 +41137,6 @@ Mastra = /*@__PURE__*/(_ => {
   return Mastra;
 })();
 
-// src/pino.ts
-var PinoLogger = class extends MastraLogger {
-  logger;
-  constructor(options = {}) {
-    super(options);
-    let prettyStream = void 0;
-    if (!options.overrideDefaultTransports) {
-      prettyStream = pretty({
-        colorize: true,
-        levelFirst: true,
-        ignore: "pid,hostname",
-        colorizeObjects: true,
-        translateTime: "SYS:standard",
-        singleLine: false
-      });
-    }
-    const transportsAry = [...this.getTransports().entries()];
-    this.logger = pino(
-      {
-        name: options.name || "app",
-        level: options.level || LogLevel.INFO,
-        formatters: options.formatters
-      },
-      options.overrideDefaultTransports ? options?.transports?.default : transportsAry.length === 0 ? prettyStream : pino.multistream([
-        ...transportsAry.map(([, transport]) => ({
-          stream: transport,
-          level: options.level || LogLevel.INFO
-        })),
-        {
-          stream: prettyStream,
-          level: options.level || LogLevel.INFO
-        }
-      ])
-    );
-  }
-  debug(message, args = {}) {
-    this.logger.debug(args, message);
-  }
-  info(message, args = {}) {
-    this.logger.info(args, message);
-  }
-  warn(message, args = {}) {
-    this.logger.warn(args, message);
-  }
-  error(message, args = {}) {
-    this.logger.error(args, message);
-  }
-};
-
 // src/storage/constants.ts
 var TABLE_WORKFLOW_SNAPSHOT = "mastra_workflow_snapshot";
 var TABLE_EVALS = "mastra_evals";
@@ -61581,11 +61530,8 @@ const mastra = new Mastra({
   },
   storage: new PostgresStore({
     connectionString: process.env.DATABASE_URL
-  }),
-  logger: new PinoLogger({
-    name: "Mastra",
-    level: "info"
   })
+  // Remove logger for serverless deployment to avoid pino bundling issues
 });
 
 export { _overwrite as $, stringbool as A, stringFormat as B, string as C, strictObject as D, _startsWith as E, _size as F, set as G, safeParseAsync as H, safeParse as I, registry as J, regexes as K, _regex as L, refine as M, record as N, readonly as O, _property as P, promise as Q, prettifyError as R, preprocess as S, prefault as T, _positive as U, pipe as V, partialRecord as W, parseAsync as X, parse$2 as Y, ZodFirstPartyTypeKind as Z, _void as _, zodToJsonSchema$2 as a, cidrv6 as a$, optional as a0, object$2 as a1, number as a2, nullish as a3, nullable as a4, _null as a5, _normalize as a6, _nonpositive as a7, nonoptional as a8, _nonnegative as a9, intersection as aA, int64 as aB, int32 as aC, int as aD, _instanceof as aE, _includes as aF, guid as aG, _gte as aH, _gt as aI, globalRegistry as aJ, formatError$1 as aK, float64 as aL, float32 as aM, flattenError as aN, file as aO, _enum as aP, _endsWith as aQ, emoji as aR, email as aS, e164 as aT, discriminatedUnion as aU, date as aV, custom as aW, cuid2 as aX, cuid as aY, config as aZ, clone as a_, never as aa, _negative as ab, nativeEnum as ac, nanoid as ad, nan as ae, _multipleOf as af, _minSize as ag, _minLength as ah, _mime as ai, _maxSize as aj, _maxLength as ak, map as al, _lte as am, _lt as an, _lowercase as ao, looseObject as ap, literal as aq, _length as ar, lazy as as, ksuid as at, keyof as au, jwt as av, json as aw, iso as ax, ipv6 as ay, ipv4 as az, uuidv6 as b, ZodDiscriminatedUnion as b$, cidrv4 as b0, check as b1, _catch as b2, boolean as b3, bigint as b4, base64url as b5, base64 as b6, array$2 as b7, any as b8, _default as b9, ZodNumberFormat as bA, ZodNumber as bB, ZodNullable as bC, ZodNull as bD, ZodNonOptional as bE, ZodNever as bF, ZodNanoID as bG, ZodNaN as bH, ZodMap as bI, ZodLiteral as bJ, ZodLazy as bK, ZodKSUID as bL, ZodJWT as bM, ZodIntersection as bN, ZodISOTime as bO, ZodISODuration as bP, ZodISODateTime as bQ, ZodISODate as bR, ZodIPv6 as bS, ZodIPv4 as bT, ZodGUID as bU, ZodFile as bV, ZodError as bW, ZodEnum as bX, ZodEmoji as bY, ZodEmail as bZ, ZodE164 as b_, _ZodString as ba, ZodXID as bb, ZodVoid as bc, ZodUnknown as bd, ZodUnion as be, ZodUndefined as bf, ZodUUID as bg, ZodURL as bh, ZodULID as bi, ZodType as bj, ZodTuple as bk, ZodTransform as bl, ZodTemplateLiteral as bm, ZodSymbol as bn, ZodSuccess as bo, ZodStringFormat as bp, ZodString as bq, ZodSet as br, ZodRecord as bs, ZodRealError as bt, ZodReadonly as bu, ZodPromise as bv, ZodPrefault as bw, ZodPipe as bx, ZodOptional as by, ZodObject as bz, uuidv4 as c, _pipe as c$, ZodDefault as c0, ZodDate as c1, ZodCustomStringFormat as c2, ZodCustom as c3, ZodCatch as c4, ZodCUID2 as c5, ZodCUID as c6, ZodCIDRv6 as c7, ZodCIDRv4 as c8, ZodBoolean as c9, globalConfig as cA, _xid as cB, _void$1 as cC, _uuidv7 as cD, _uuidv6 as cE, _uuidv4 as cF, _uuid as cG, _url as cH, _union as cI, _undefined$1 as cJ, _ulid as cK, _uint64 as cL, _uint32 as cM, _transform as cN, _templateLiteral as cO, _symbol as cP, _success as cQ, _stringbool as cR, _stringFormat as cS, _string as cT, _set as cU, _safeParseAsync as cV, _safeParse as cW, _refine as cX, _record as cY, _readonly as cZ, _promise as c_, ZodBigIntFormat as ca, ZodBigInt as cb, ZodBase64URL as cc, ZodBase64 as cd, ZodArray as ce, ZodAny as cf, TimePrecision as cg, NEVER as ch, $output as ci, $input as cj, $brand as ck, _unknown as cl, _tuple as cm, _array as cn, $ZodUnknown as co, $ZodArray as cp, version$1 as cq, util$2 as cr, toDotPath as cs, safeParseAsync$1 as ct, safeParse$1 as cu, parseAsync$1 as cv, parse$1$1 as cw, isValidJWT as cx, isValidBase64URL as cy, isValidBase64 as cz, uuid as d, $ZodULID as d$, _parseAsync as d0, _parse$2 as d1, _optional as d2, _number as d3, _nullable as d4, _null$1 as d5, _nonoptional as d6, _never as d7, _nativeEnum as d8, _nanoid as d9, _default$1 as dA, _date as dB, _custom as dC, _cuid2 as dD, _cuid as dE, _coercedString as dF, _coercedNumber as dG, _coercedDate as dH, _coercedBoolean as dI, _coercedBigint as dJ, _cidrv6 as dK, _cidrv4 as dL, _catch$1 as dM, _boolean as dN, _bigint as dO, _base64url as dP, _base64 as dQ, _any as dR, JSONSchemaGenerator as dS, Doc as dT, $constructor as dU, $ZodXID as dV, $ZodVoid as dW, $ZodUnion as dX, $ZodUndefined as dY, $ZodUUID as dZ, $ZodURL as d_, _nan as da, _map as db, _literal as dc, _lazy as dd, _ksuid as de, _jwt as df, _isoTime as dg, _isoDuration as dh, _isoDateTime as di, _isoDate as dj, _ipv6 as dk, _ipv4 as dl, _intersection as dm, _int64 as dn, _int32 as dp, _int as dq, _guid as dr, _float64 as ds, _float32 as dt, _file as du, _enum$1 as dv, _emoji as dw, _email as dx, _e164 as dy, _discriminatedUnion as dz, url as e, $ZodCheckMaxLength as e$, $ZodType as e0, $ZodTuple as e1, $ZodTransform as e2, $ZodTemplateLiteral as e3, $ZodSymbol as e4, $ZodSuccess as e5, $ZodStringFormat as e6, $ZodString as e7, $ZodSet as e8, $ZodRegistry as e9, $ZodIPv6 as eA, $ZodIPv4 as eB, $ZodGUID as eC, $ZodFile as eD, $ZodError as eE, $ZodEnum as eF, $ZodEmoji as eG, $ZodEmail as eH, $ZodE164 as eI, $ZodDiscriminatedUnion as eJ, $ZodDefault as eK, $ZodDate as eL, $ZodCustomStringFormat as eM, $ZodCustom as eN, $ZodCheckUpperCase as eO, $ZodCheckStringFormat as eP, $ZodCheckStartsWith as eQ, $ZodCheckSizeEquals as eR, $ZodCheckRegex as eS, $ZodCheckProperty as eT, $ZodCheckOverwrite as eU, $ZodCheckNumberFormat as eV, $ZodCheckMultipleOf as eW, $ZodCheckMinSize as eX, $ZodCheckMinLength as eY, $ZodCheckMimeType as eZ, $ZodCheckMaxSize as e_, $ZodRecord as ea, $ZodRealError as eb, $ZodReadonly as ec, $ZodPromise as ed, $ZodPrefault as ee, $ZodPipe as ef, $ZodOptional as eg, $ZodObject as eh, $ZodNumberFormat as ei, $ZodNumber as ej, $ZodNullable as ek, $ZodNull as el, $ZodNonOptional as em, $ZodNever as en, $ZodNanoID as eo, $ZodNaN as ep, $ZodMap as eq, $ZodLiteral as er, $ZodLazy as es, $ZodKSUID as et, $ZodJWT as eu, $ZodIntersection as ev, $ZodISOTime as ew, $ZodISODuration as ex, $ZodISODateTime as ey, $ZodISODate as ez, _uppercase as f, $ZodCheckLowerCase as f0, $ZodCheckLessThan as f1, $ZodCheckLengthEquals as f2, $ZodCheckIncludes as f3, $ZodCheckGreaterThan as f4, $ZodCheckEndsWith as f5, $ZodCheckBigIntFormat as f6, $ZodCheck as f7, $ZodCatch as f8, $ZodCUID2 as f9, AISpanType as fA, executeHook as fB, registerHook as fC, mastra as fD, AvailableHooks as fE, checkEvalStorageFields as fF, TABLE_EVALS as fG, weatherTool as fH, $ZodCUID as fa, $ZodCIDRv6 as fb, $ZodCIDRv4 as fc, $ZodBoolean as fd, $ZodBigIntFormat as fe, $ZodBigInt as ff, $ZodBase64URL as fg, $ZodBase64 as fh, $ZodAsyncError as fi, $ZodAny as fj, joinValues as fk, stringifyPrimitive as fl, createWorkflow as fm, createStep as fn, Agent as fo, createTool as fp, MastraMemory as fq, MessageList as fr, generateEmptyFromSchema as fs, MemoryProcessor as ft, ZodObject$1 as fu, RuntimeContext as fv, isVercelTool as fw, MastraError as fx, Telemetry as fy, Tool as fz, unknown as g, union as h, _undefined as i, ulid as j, uint64 as k, uint32 as l, _trim as m, treeifyError as n, transform as o, _toUpperCase as p, _toLowerCase as q, toJSONSchema as r, templateLiteral as s, tuple as t, uuidv7 as u, symbol$6 as v, superRefine as w, xid as x, success as y, z };
