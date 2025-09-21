@@ -24,6 +24,7 @@
     "@mastra/libsql": "^0.14.2",
     "@mastra/memory": "^0.15.2",
     "@mastra/pg": "^0.16.0",
+    "pg": "^8.16.3",
     "zod": "^3.25.76"
   },
   "devDependencies": {
