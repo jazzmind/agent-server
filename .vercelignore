@@ -40,3 +40,7 @@ yarn-error.log*
 # Database files
 *.db
 *.db-*
+
+# PostgreSQL (using @mastra/pg instead of Prisma)
+*.db
+*.db-*

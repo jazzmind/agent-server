@@ -25,9 +25,7 @@
     "@mastra/loggers": "^0.10.12",
     "@mastra/memory": "^0.15.2",
     "@mastra/pg": "^0.16.0",
-    "@prisma/client": "^6.16.2",
     "jose": "^6.1.0",
-    "prisma": "^6.16.2",
     "zod": "^3.25.76"
   },
   "devDependencies": {

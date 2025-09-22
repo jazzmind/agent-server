@@ -3,17 +3,46 @@ import { readFileSync, readdirSync, existsSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
 import { jwtVerify, createRemoteJWKSet, SignJWT, importJWK } from 'jose';
-import { PrismaClient } from '@prisma/client';
+import { PostgresStore } from '@mastra/pg';
 
 // Configuration
 const KEYS_DIR = process.env.KEYS_DIR || 'keys';
 const SERVERS_DB_FILE = process.env.SERVERS_DB_FILE || 'servers.json';
 
-// Prisma client for database operations
-const prisma = new PrismaClient();
-
-// In-memory server registry (fallback for local development)
+// In-memory server registry (fallback for when storage isn't available)
 let serversDb: Record<string, any> = {};
+
+// PostgreSQL storage for client registrations
+let pgStore: PostgresStore | null = null;
+
+// Initialize PostgreSQL storage
+async function initializeStorage() {
+  if (!pgStore && process.env.DATABASE_URL) {
+    try {
+      pgStore = new PostgresStore({
+        connectionString: process.env.DATABASE_URL,
+      });
+      pgStore.init();
+      // Create client registrations table if it doesn't exist
+      await pgStore.db.none(`
+        CREATE TABLE IF NOT EXISTS client_registrations (
+          client_id VARCHAR(255) PRIMARY KEY,
+          client_secret VARCHAR(255) NOT NULL,
+          name VARCHAR(255) NOT NULL,
+          scopes TEXT[] DEFAULT '{}',
+          registered_by VARCHAR(255),
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+      
+      console.log('✅ PostgreSQL storage initialized for client registrations');
+    } catch (error: any) {
+      console.warn('⚠️ Failed to initialize PostgreSQL storage:', error.message);
+      pgStore = null;
+    }
+  }
+}
 
 // Load servers database if it exists
 function loadServersDb() {
@@ -130,27 +159,27 @@ function loadTokenServiceKeys() {
   return null;
 }
 
-// Verify client credentials (async now that we use database)
+// Verify client credentials using PostgreSQL storage
 async function verifyClientCredentials(clientId: string, clientSecret: string) {
+  await initializeStorage();
+  
   try {
-    const client = await prisma.serverRegistration.findUnique({
-      where: { clientId }
-    });
-    
-    if (!client) {
-      throw new Error('Invalid client_id');
+    if (pgStore) {
+      // Use PostgreSQL to find the client
+      const client = await pgStore.db.oneOrNone(
+        'SELECT * FROM client_registrations WHERE client_id = $1',
+        [clientId]
+      );
+      
+      if (client && client.client_secret === clientSecret) {
+        return {
+          clientId,
+          name: client.name,
+          scopes: client.scopes || []
+        };
+      }
     }
     
-    if (client.clientSecret !== clientSecret) {
-      throw new Error('Invalid client_secret');
-    }
-    
-    return {
-      clientId,
-      name: client.name,
-      scopes: client.scopes
-    };
-  } catch (error) {
     // Fallback to in-memory for local development
     const memoryClient = serversDb[clientId];
     if (memoryClient && memoryClient.clientSecret === clientSecret) {
@@ -160,6 +189,8 @@ async function verifyClientCredentials(clientId: string, clientSecret: string) {
         scopes: memoryClient.scopes
       };
     }
+    throw new Error('Invalid client_id');
+  } catch (error) {
     throw new Error('Invalid client_id');
   }
 }
@@ -278,13 +309,15 @@ export const serverRegistrationRoute = registerApiRoute('/servers/register', {
   method: 'POST',
   handler: async (c) => {
     try {
+      await initializeStorage();
+      
       // Security check: Only allow registration in development or with admin key
       const isDevelopment = process.env.NODE_ENV === 'development' || 
                            process.env.VERCEL_ENV === 'development' ||
                            (!process.env.VERCEL_ENV && !process.env.VERCEL); // Local development only
       
-      const adminKey = c.req.header('x-admin-key');
-      const expectedAdminKey = process.env.ADMIN_REGISTRATION_KEY;
+      // const adminKey = c.req.header('x-admin-key');
+      // const expectedAdminKey = process.env.ADMIN_REGISTRATION_KEY;
       
       // Debug logging (remove in production)
       console.log('🔍 Registration security check:', {
@@ -292,15 +325,15 @@ export const serverRegistrationRoute = registerApiRoute('/servers/register', {
         VERCEL_ENV: process.env.VERCEL_ENV,
         VERCEL: process.env.VERCEL,
         isDevelopment,
-        hasAdminKey: !!adminKey,
-        hasExpectedAdminKey: !!expectedAdminKey
+        // hasAdminKey: !!adminKey,
+        // hasExpectedAdminKey: !!expectedAdminKey
       });
       
-      if (!isDevelopment && (!adminKey || !expectedAdminKey || adminKey !== expectedAdminKey)) {
+      if (!isDevelopment) {
         console.warn('🚫 Unauthorized registration attempt from:', c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown');
         return c.json({ 
           error: 'Unauthorized. Client registration is only allowed in development or with admin key.',
-          debug: { isDevelopment, hasAdminKey: !!adminKey, hasExpectedAdminKey: !!expectedAdminKey }
+          debug: { isDevelopment }
         }, 403);
       }
 
@@ -311,14 +344,18 @@ export const serverRegistrationRoute = registerApiRoute('/servers/register', {
       }
 
       // Check if client already exists
-      const existingClient = await prisma.serverRegistration.findUnique({
-        where: { serverId }
-      });
+      let existingClient = null;
+      if (pgStore) {
+        existingClient = await pgStore.db.oneOrNone(
+          'SELECT * FROM client_registrations WHERE client_id = $1',
+          [serverId]
+        );
+      }
 
       if (existingClient) {
         return c.json({ 
           error: 'Client already exists',
-          clientId: existingClient.clientId,
+          clientId: existingClient.client_id,
           scopes: existingClient.scopes
         }, 409);
       }
@@ -328,16 +365,19 @@ export const serverRegistrationRoute = registerApiRoute('/servers/register', {
       const clientSecret = randomUUID();
 
       // Save to database
-      const newClient = await prisma.serverRegistration.create({
-        data: {
-          serverId,
-          name,
-          clientId,
-          clientSecret,
-          scopes,
-          registeredBy: isDevelopment ? 'development' : 'admin'
+      try {
+        if (pgStore) {
+          await pgStore.db.none(`
+            INSERT INTO client_registrations (client_id, client_secret, name, scopes, registered_by)
+            VALUES ($1, $2, $3, $4, $5)
+          `, [clientId, clientSecret, name, scopes, isDevelopment ? 'development' : 'admin']);
+          console.log(`✅ Server registered in PostgreSQL: ${name} (${clientId})`);
+        } else {
+          throw new Error('PostgreSQL not available');
         }
-      });
+      } catch (dbError: any) {
+        console.warn('⚠️ Database save failed, using in-memory fallback:', dbError.message);
+      }
 
       // Also save to memory for local development fallback
       serversDb[serverId] = {
@@ -370,16 +410,16 @@ export const listServersRoute = registerApiRoute('/servers', {
   method: 'GET',
   handler: async (c) => {
     try {
-      const dbServers = await prisma.serverRegistration.findMany({
-        select: {
-          serverId: true,
-          name: true,
-          scopes: true,
-          createdAt: true,
-          registeredBy: true
-        }
-      });
-
+      await initializeStorage();
+      
+      let dbServers = [];
+      if (pgStore) {
+        dbServers = await pgStore.db.manyOrNone(`
+          SELECT client_id as "serverId", name, scopes, created_at as "createdAt", registered_by as "registeredBy"
+          FROM client_registrations
+        `);
+      }
+      console.log('dbServers', dbServers);
       // Fallback to memory for local development
       const memoryServers = Object.entries(serversDb).map(([id, data]) => ({
         serverId: id,
@@ -388,7 +428,7 @@ export const listServersRoute = registerApiRoute('/servers', {
         createdAt: data.createdAt,
         registeredBy: data.registeredBy || 'memory'
       }));
-
+      console.log('memoryServers', memoryServers);
       // Combine and deduplicate (prefer database entries)
       const serverMap = new Map();
       memoryServers.forEach(s => serverMap.set(s.serverId, s));
@@ -413,20 +453,28 @@ export const listServersRoute = registerApiRoute('/servers', {
 export const authHealthRoute = registerApiRoute('/auth/health', {
   method: 'GET',
   handler: async (c) => {
+    await initializeStorage();
+    
     const keys = loadPublicKeys();
     
     let dbServerCount = 0;
+    let databaseConnected = false;
     try {
-      dbServerCount = await prisma.serverRegistration.count();
-    } catch (error) {
+      if (pgStore) {
+        dbServerCount = await pgStore.db.one('SELECT COUNT(*) as count FROM client_registrations', [], a => +a.count);
+        databaseConnected = true;
+      }
+    } catch (error: any) {
       // Database not available, use memory count
+      console.warn('Health check: Database not available:', error.message);
     }
     
     return c.json({
       status: 'healthy',
       keysLoaded: keys.length,
       serversRegistered: dbServerCount || Object.keys(serversDb).length,
-      databaseConnected: dbServerCount > 0 || Object.keys(serversDb).length === 0
+      databaseConnected,
+      storageType: databaseConnected ? 'postgresql' : 'memory'
     });
   },
 });

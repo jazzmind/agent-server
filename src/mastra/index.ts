@@ -25,10 +25,10 @@ export const mastra = new Mastra({
     }),
     apiRoutes: authRoutes,
   },
-  bundler: {
-    externals: ['jose', 'pg', '@mastra/pg'],
-    sourcemap: false,
-    transpilePackages: ['@mastra/core', '@mastra/auth']
+  // Disable telemetry to reduce bundle size
+  telemetry: {
+    enabled: false,
+    sampling: undefined
   }
 });
 

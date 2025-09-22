@@ -6,11 +6,16 @@ dist
 .env
 *.db
 *.db-*
+# Vercel deployment artifacts
+.vercel/
 .vercel
+.next
 
 # Authentication
 keys/
 servers.json
 jwks/
 
-/src/generated/prisma
+# Database files
+*.db
+*.db-*

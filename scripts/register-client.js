@@ -15,11 +15,12 @@ if (!serverId || !serverName) {
   process.exit(1);
 }
 
-const TOKEN_SERVICE_URL = process.env.TOKEN_SERVICE_URL || 'http://localhost:4111';
+const TOKEN_SERVICE_URL = process.env.TOKEN_SERVICE_URL || 'http://localhost:4113';
 
 async function registerClient() {
   try {
     console.log(`📝 Registering client: ${serverName} (${serverId})`);
+    console.log(`🔗 Token Service URL: ${TOKEN_SERVICE_URL}`);
     console.log(`🎯 Scopes: ${scopes.join(', ') || 'none'}`);
     
     // Check if we're in production and need admin key
