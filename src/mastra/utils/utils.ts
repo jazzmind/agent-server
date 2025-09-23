@@ -1,4 +1,4 @@
-import { makeAccessTokenVerifier } from "../auth/verifyAssertion";
+import { makeAccessTokenVerifier } from "../../auth/verifyAssertion";
 
 // Token cache to avoid repeated exchanges
 const tokenCache = new Map<string, { token: string; expires: number }>();

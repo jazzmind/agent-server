@@ -1,6 +1,6 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { verifyToken } from "../utils";
+import { verifyToken } from "../utils/utils";
 
 interface GeocodingResponse {
   results: {
