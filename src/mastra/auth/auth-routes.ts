@@ -2,7 +2,7 @@ import { registerApiRoute } from '@mastra/core/server';
 import { readFileSync, readdirSync, existsSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
-import { jwtVerify, createRemoteJWKSet, SignJWT, importJWK } from 'jose';
+import { SignJWT, importJWK } from 'jose';
 import { PostgresStore } from '@mastra/pg';
 import { verifyManagementClient, loadPublicKeys, verifyAdminBearerToken } from './auth-utils';
 import { getSharedPostgresStore } from '../utils/database';
@@ -355,8 +355,8 @@ export const tokenRoute = registerApiRoute('/token', {
   },
 });
 
-// Server registration endpoint (protected)
-export const serverRegistrationRoute = registerApiRoute('/servers/register', {
+// Client registration endpoint (protected)
+export const clientRegistrationRoute = registerApiRoute('/clients/register', {
   method: 'POST',
   handler: async (c) => {
     try {
@@ -460,8 +460,8 @@ export const serverRegistrationRoute = registerApiRoute('/servers/register', {
   },
 });
 
-// List servers endpoint
-export const listServersRoute = registerApiRoute('/servers', {
+// List clients endpoint
+export const listClientsRoute = registerApiRoute('/clients', {
   method: 'GET',
   handler: async (c) => {
     try {
@@ -509,7 +509,7 @@ export const listServersRoute = registerApiRoute('/servers', {
 });
 
 // Delete client endpoint (protected)
-export const deleteClientRoute = registerApiRoute('/servers/:clientId', {
+export const deleteClientRoute = registerApiRoute('/clients/:clientId', {
   method: 'DELETE',
   handler: async (c) => {
     try {
@@ -554,6 +554,172 @@ export const deleteClientRoute = registerApiRoute('/servers/:clientId', {
       return c.json({ message: 'Client deleted successfully' });
       
     } catch (error: any) {
+      return c.json({ error: 'Server error', details: error.message }, 500);
+    }
+  },
+});
+
+// Update client endpoint (protected)
+export const updateClientRoute = registerApiRoute('/clients/:clientId', {
+  method: 'PATCH',
+  handler: async (c) => {
+    try {
+      await initializeStorage();
+      
+      const clientId = c.req.param('clientId');
+      const requestBody = await c.req.json();
+      const { scopes } = requestBody;
+      
+      // Verify Bearer token with admin write permission
+      try {
+        const authHeader = c.req.header('Authorization');
+        await verifyAdminBearerToken(authHeader, ['client.write']);
+      } catch (error: any) {
+        console.warn('🚫 Unauthorized client update attempt:', error.message);
+        return c.json({ 
+          error: 'Unauthorized. Valid admin token required.',
+          details: error.message
+        }, 403);
+      }
+      
+      if (!Array.isArray(scopes)) {
+        return c.json({ error: 'Scopes must be an array' }, 400);
+      }
+      
+      // Update in database
+      let updated = false;
+      if (pgStore) {
+        const result = await pgStore.db.result(
+          'UPDATE client_registrations SET scopes = $1, updated_at = NOW() WHERE client_id = $2',
+          [scopes, clientId]
+        );
+        updated = result.rowCount > 0;
+      }
+      
+      // Also update in memory if exists
+      if (serversDb[clientId]) {
+        serversDb[clientId].scopes = scopes;
+        saveServersDb();
+        updated = true;
+      }
+      
+      if (!updated) {
+        return c.json({ error: 'Client not found' }, 404);
+      }
+      
+      console.log(`📝 Updated client scopes: ${clientId}`);
+      return c.json({ 
+        message: 'Client updated successfully', 
+        client: { clientId, scopes }
+      });
+      
+    } catch (error: any) {
+      console.error('Failed to update client:', error);
+      return c.json({ error: 'Server error', details: error.message }, 500);
+    }
+  },
+});
+
+// Get client secret endpoint (protected)
+export const getClientSecretRoute = registerApiRoute('/clients/:clientId/secret', {
+  method: 'GET',
+  handler: async (c) => {
+    try {
+      await initializeStorage();
+      
+      const clientId = c.req.param('clientId');
+      
+      // Verify Bearer token with admin read permission
+      try {
+        const authHeader = c.req.header('Authorization');
+        await verifyAdminBearerToken(authHeader, ['client.read']);
+      } catch (error: any) {
+        console.warn('🚫 Unauthorized client secret access attempt:', error.message);
+        return c.json({ 
+          error: 'Unauthorized. Valid admin token required.',
+          details: error.message
+        }, 403);
+      }
+      
+      // Get from database
+      let clientSecret = null;
+      if (pgStore) {
+        const client = await pgStore.db.oneOrNone(
+          'SELECT client_secret FROM client_registrations WHERE client_id = $1',
+          [clientId]
+        );
+        clientSecret = client?.client_secret;
+      }
+      
+      // Fallback to memory
+      if (!clientSecret && serversDb[clientId]) {
+        clientSecret = serversDb[clientId].clientSecret;
+      }
+      
+      if (!clientSecret) {
+        return c.json({ error: 'Client not found' }, 404);
+      }
+      
+      console.log(`🔑 Retrieved client secret: ${clientId}`);
+      return c.json({ secret: clientSecret });
+      
+    } catch (error: any) {
+      console.error('Failed to get client secret:', error);
+      return c.json({ error: 'Server error', details: error.message }, 500);
+    }
+  },
+});
+
+// Reset client secret endpoint (protected)
+export const resetClientSecretRoute = registerApiRoute('/clients/:clientId/secret', {
+  method: 'POST',
+  handler: async (c) => {
+    try {
+      await initializeStorage();
+      
+      const clientId = c.req.param('clientId');
+      
+      // Verify Bearer token with admin write permission
+      try {
+        const authHeader = c.req.header('Authorization');
+        await verifyAdminBearerToken(authHeader, ['client.write']);
+      } catch (error: any) {
+        console.warn('🚫 Unauthorized client secret reset attempt:', error.message);
+        return c.json({ 
+          error: 'Unauthorized. Valid admin token required.',
+          details: error.message
+        }, 403);
+      }
+      
+      // Generate new secret
+      const newSecret = randomUUID();
+      
+      // Update in database
+      let updated = false;
+      if (pgStore) {
+        const result = await pgStore.db.result(
+          'UPDATE client_registrations SET client_secret = $1, updated_at = NOW() WHERE client_id = $2',
+          [newSecret, clientId]
+        );
+        updated = result.rowCount > 0;
+      }
+      
+      // Also update in memory if exists
+      if (serversDb[clientId]) {
+        serversDb[clientId].clientSecret = newSecret;
+        saveServersDb();
+        updated = true;
+      }
+      
+      if (!updated) {
+        return c.json({ error: 'Client not found' }, 404);
+      }
+      
+      console.log(`🔄 Reset client secret: ${clientId}`);
+      return c.json({ secret: newSecret });
+      
+    } catch (error: any) {
+      console.error('Failed to reset client secret:', error);
       return c.json({ error: 'Server error', details: error.message }, 500);
     }
   },
@@ -634,9 +800,12 @@ export const authHealthRoute = registerApiRoute('/auth/health', {
 export const authRoutes = [
   jwksRoute,
   tokenRoute,
-  serverRegistrationRoute,
-  listServersRoute,
+  clientRegistrationRoute,
+  listClientsRoute,
   deleteClientRoute,
+  updateClientRoute,
+  getClientSecretRoute,
+  resetClientSecretRoute,
   reloadDynamicRoute,
   authHealthRoute,
   ...ragRoutes,
