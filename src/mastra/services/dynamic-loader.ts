@@ -122,17 +122,28 @@ interface NetworkAgentRole {
 
 // Helper function to get model instance from string
 function getModelFromString(modelString: string) {
-  // For now, default to OpenAI models
-  // This could be expanded to support other providers
-  switch (modelString.toLowerCase()) {
-    case 'gpt-5':
-    case 'gpt-5-mini':
-    case 'gpt-5-nano':  
-      return openai(modelString.toLowerCase());
-    default:
-      console.warn(`Unknown model: ${modelString}, defaulting to gpt-5-nano`);
-      return openai('gpt-5-nano');
+  // Map database model names to actual OpenAI models
+  const modelMapping: Record<string, string> = {
+    'gpt-5': 'gpt-4-turbo-preview',
+    'gpt-5-mini': 'gpt-3.5-turbo',
+    'gpt-5-nano': 'gpt-3.5-turbo',
+    'gpt-4o': 'gpt-4-turbo-preview',
+    'gpt-4o-mini': 'gpt-3.5-turbo',
+    'gpt-4-turbo': 'gpt-4-turbo-preview',
+    'gpt-3.5-turbo': 'gpt-3.5-turbo',
+  };
+
+  const lowerModel = modelString.toLowerCase();
+  const mappedModel = modelMapping[lowerModel] || modelString;
+
+  // If it starts with gpt-, assume it's an OpenAI model
+  if (mappedModel.startsWith('gpt-')) {
+    return openai(mappedModel);
   }
+
+  // Default to gpt-3.5-turbo for unknown models
+  console.warn(`Unknown model: ${modelString}, defaulting to gpt-3.5-turbo`);
+  return openai('gpt-3.5-turbo');
 }
 
 export class DynamicLoader {
@@ -316,7 +327,7 @@ export class DynamicLoader {
           }
 
           // Get model instance
-          const model = getModelFromString(definition.model || 'gpt-5-nano');
+          const model = getModelFromString(definition.model || 'gpt-3.5-turbo');
 
           // Get shared storage for memory
           const sharedPgStore = await getSharedPostgresStore();

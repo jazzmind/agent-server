@@ -3,7 +3,12 @@
 import { generateKeyPair, exportJWK } from 'jose';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import { randomUUID } from 'crypto';
+import { randomUUID, webcrypto } from 'crypto';
+
+// Polyfill for Node.js 18
+if (!globalThis.crypto) {
+  globalThis.crypto = webcrypto;
+}
 
 /**
  * Generate Ed25519 keypair and save as JWK files

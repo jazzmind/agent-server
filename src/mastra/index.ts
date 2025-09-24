@@ -1,4 +1,11 @@
 
+import { webcrypto } from 'crypto';
+
+// Polyfill for Node.js 18
+if (!globalThis.crypto) {
+  globalThis.crypto = webcrypto as any;
+}
+
 import { Mastra } from '@mastra/core/mastra';
 import { weatherWorkflow } from './workflows/weather-workflow';
 import { weatherAgent } from './agents/weather-agent';
@@ -53,7 +60,20 @@ export const mastra = new Mastra({
     middleware: [
       {
         handler: async (c, next) => {
-          // Example: Add authentication check
+          // Skip auth for playground API routes in development
+          const url = new URL(c.req.url);
+          const isPlaygroundRoute = url.pathname.startsWith('/api/agents') ||
+                                   url.pathname.startsWith('/api/tools') ||
+                                   url.pathname.startsWith('/api/workflows') ||
+                                   url.pathname.startsWith('/api/networks') ||
+                                   url.pathname.startsWith('/api/scorers');
+
+          if (process.env.NODE_ENV === 'development' && isPlaygroundRoute) {
+            await next();
+            return;
+          }
+
+          // Require auth for other /api/* routes
           const authHeader = c.req.header("Authorization");
           if (!authHeader) {
             return new Response("Unauthorized", { status: 401 });
