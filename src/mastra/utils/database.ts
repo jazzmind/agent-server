@@ -1,8 +1,14 @@
 import { PostgresStore } from '@mastra/pg';
 
+// TODO: PgVector import has issues during build, commented out for now
+// import { PgVector } from '@mastra/pg';
+
 // Shared PostgreSQL store instance
 let sharedPgStore: PostgresStore | null = null;
 let initPromise: Promise<PostgresStore | null> | null = null;
+// TODO: PgVector functionality commented out due to build issues
+// let sharedPgVector: PgVector | null = null;
+// let initPromiseVector: Promise<PgVector | null> | null = null;
 
 /**
  * Get or create a shared PostgreSQL store instance
@@ -70,3 +76,49 @@ export async function closeSharedPostgresStore(): Promise<void> {
     }
   }
 }
+
+// TODO: PgVector functionality commented out due to build issues with @mastra/pg exports
+// Users can uncomment and fix the import once PgVector export issue is resolved
+
+/*
+export async function getSharedPgVector(): Promise<PgVector | null> {
+  if (sharedPgVector) {
+    return sharedPgVector;
+  }
+
+  if (initPromiseVector) {
+    return initPromiseVector;
+  }
+
+  initPromiseVector = initializeSharedVector();
+  return initPromiseVector;
+}
+
+async function initializeSharedVector(): Promise<PgVector | null> {
+  if (!process.env.DATABASE_URL) {
+    console.warn('⚠️ DATABASE_URL not configured, PostgreSQL features disabled');
+    return null;
+  }     
+
+  try {
+    console.log('🔗 Initializing shared PostgreSQL vector connection...');
+    sharedPgVector = new PgVector({
+      connectionString: process.env.DATABASE_URL,
+    });
+    console.log('✅ Shared PostgreSQL vector connection initialized');
+    return sharedPgVector;
+  } catch (error: any) {
+    console.error('❌ Failed to initialize shared PostgreSQL vector connection:', error.message); 
+    sharedPgVector = null;
+    initPromiseVector = null;
+    return null;
+  }
+}
+*/
+
+// Placeholder function that returns null until PgVector import is fixed
+export async function getSharedPgVector(): Promise<any | null> {
+  console.warn('⚠️ PgVector functionality disabled due to import issues. Please fix @mastra/pg imports.');
+  return null;
+}
+

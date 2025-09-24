@@ -4,6 +4,7 @@
 
 export interface ModelDef {
   model: string;
+  provider: 'openai' | 'anthropic' | 'local';
   reasoning?: 'minimal' | 'low' | 'medium' | 'high' | undefined;
   text?: {
     verbosity?: 'low' | 'medium' | 'high';
@@ -14,6 +15,7 @@ export const MODELS = {
   // Fast model for quick operations
   fast: {
     model: 'gpt-5-nano',
+    provider: 'openai',
     reasoning: 'minimal' as const,
     text: { verbosity: 'low' }
   } as ModelDef,
@@ -21,6 +23,7 @@ export const MODELS = {
   // Default model for most operations
   default: {
     model: 'gpt-5-mini',
+    provider: 'openai',
     reasoning: 'minimal' as const,
     text: { verbosity: 'medium' }
   } as ModelDef,
@@ -28,6 +31,7 @@ export const MODELS = {
   // Evaluation model for detailed analysis
   evaluation: {
     model: 'gpt-5-mini',
+    provider: 'openai',
     reasoning: 'medium' as const,
     text: { verbosity: 'high' }
   } as ModelDef,
@@ -35,12 +39,14 @@ export const MODELS = {
   // Large model for complex operations
   best: {
     model: 'gpt-5',
+    provider: 'openai',
     reasoning: 'medium' as const,
     text: { verbosity: 'high' }
   } as ModelDef,
 
   smartest: {
     model: 'gpt-5',
+    provider: 'openai',
     reasoning: 'high' as const,
     text: { verbosity: 'high' }
   } as ModelDef,

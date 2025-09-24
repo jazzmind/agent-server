@@ -1,5 +1,5 @@
 import { PostgresStore } from '@mastra/pg';
-import { openai } from '@ai-sdk/openai';
+import { ai } from '../utils/ai';
 import { Agent } from '@mastra/core/agent';
 import { createTool, ToolExecutionContext, ToolInvocationOptions } from '@mastra/core/tools';
 import { createWorkflow, createStep } from '@mastra/core/workflows';
@@ -138,12 +138,12 @@ function getModelFromString(modelString: string) {
 
   // If it starts with gpt-, assume it's an OpenAI model
   if (mappedModel.startsWith('gpt-')) {
-    return openai(mappedModel);
+    return ai(mappedModel);
   }
 
   // Default to gpt-3.5-turbo for unknown models
   console.warn(`Unknown model: ${modelString}, defaulting to gpt-5-nano`);
-  return openai('gpt-5-nano');
+  return ai('gpt-5-nano');
 }
 
 export class DynamicLoader {

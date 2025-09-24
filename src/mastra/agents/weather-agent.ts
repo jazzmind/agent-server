@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { ai } from '../utils/ai';
 import { Agent } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
 import { weatherTool } from '../tools/weather-tool';
@@ -28,7 +28,7 @@ async function createWeatherAgent() {
 
         Use the weatherTool to fetch current weather data.
   `,
-    model: openai(MODELS.default.model),
+    model: ai(MODELS.default.model),
     tools: { 
       weatherTool,
       getAccessToken: createTool({

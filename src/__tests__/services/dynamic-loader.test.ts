@@ -16,6 +16,10 @@ vi.mock('@ai-sdk/openai', () => ({
   openai: vi.fn().mockReturnValue('mocked-openai-model'),
 }));
 
+vi.mock('../../mastra/utils/ai', () => ({
+  ai: vi.fn().mockReturnValue('mocked-ai-model'),
+}));
+
 vi.mock('@mastra/core/agent', () => ({
   Agent: vi.fn().mockImplementation(() => ({
     name: 'test-agent',
