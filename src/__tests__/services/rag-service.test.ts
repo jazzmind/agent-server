@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { RAGService } from '../../mastra/services/rag-service';
+import { RAGService } from '../../mastra/services/rag';
 
 // Mock PostgresStore
 vi.mock('@mastra/pg', () => ({

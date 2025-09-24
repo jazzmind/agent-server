@@ -1,6 +1,6 @@
 import { registerApiRoute } from '@mastra/core/server';
-import { RAGService } from '../services/rag-service';
-import { verifyManagementClient } from './auth-utils';
+import { RAGService } from '../mastra/services/rag';
+import { verifyAdminBearerToken } from '../mastra/auth/auth-utils';
 
 // Initialize RAG service
 const ragService = new RAGService();
@@ -12,28 +12,10 @@ export const listRAGDatabasesRoute = registerApiRoute('/rag/databases', {
   method: 'GET',
   handler: async (c) => {
     try {
-      // Get management client credentials from headers
-      const managementClientId = c.req.header('x-management-client-id');
-      const managementClientSecret = c.req.header('x-management-client-secret');
-      
-      // Verify management client credentials
-      if (!managementClientId || !managementClientSecret) {
-        return c.json({ 
-          error: 'Missing management client credentials',
-          details: 'Management client ID and secret are required'
-        }, 401);
-      }
-      
-      try {
-        await verifyManagementClient(managementClientId, managementClientSecret);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized RAG database list attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid management client credentials required.',
-          details: error.message
-        }, 403);
-      }
-      
+      // Verify Bearer token with admin read permission
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.read']);
+
       // List databases
       const databases = await ragService.listDatabases();
       
@@ -52,33 +34,14 @@ export const createRAGDatabaseRoute = registerApiRoute('/rag/databases', {
   method: 'POST',
   handler: async (c) => {
     try {
-      // Get management client credentials from headers
-      const managementClientId = c.req.header('x-management-client-id');
-      const managementClientSecret = c.req.header('x-management-client-secret');
-      
-      // Verify management client credentials
-      if (!managementClientId || !managementClientSecret) {
-        return c.json({ 
-          error: 'Missing management client credentials',
-          details: 'Management client ID and secret are required'
-        }, 401);
-      }
-      
-      try {
-        await verifyManagementClient(managementClientId, managementClientSecret);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized RAG database creation attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid management client credentials required.',
-          details: error.message
-        }, 403);
-      }
-      
+      // Verify Bearer token with admin write permission
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.write']);
       // Parse request body
       const config = await c.req.json();
       
       // Create database
-      const database = await ragService.createDatabase(config, managementClientId);
+      const database = await ragService.createDatabase(config, 'admin');
       
       return c.json({ database }, 201);
     } catch (error: any) {
@@ -95,27 +58,9 @@ export const getRAGDatabaseRoute = registerApiRoute('/rag/databases/:id', {
   method: 'GET',
   handler: async (c) => {
     try {
-      // Get management client credentials from headers
-      const managementClientId = c.req.header('x-management-client-id');
-      const managementClientSecret = c.req.header('x-management-client-secret');
-      
-      // Verify management client credentials
-      if (!managementClientId || !managementClientSecret) {
-        return c.json({ 
-          error: 'Missing management client credentials',
-          details: 'Management client ID and secret are required'
-        }, 401);
-      }
-      
-      try {
-        await verifyManagementClient(managementClientId, managementClientSecret);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized RAG database access attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid management client credentials required.',
-          details: error.message
-        }, 403);
-      }
+      // Verify Bearer token with admin read permission
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.read']);
       
       const databaseId = c.req.param('id');
       
@@ -145,36 +90,15 @@ export const updateRAGDatabaseRoute = registerApiRoute('/rag/databases/:id', {
   method: 'PUT',
   handler: async (c) => {
     try {
-      // Get management client credentials from headers
-      const managementClientId = c.req.header('x-management-client-id');
-      const managementClientSecret = c.req.header('x-management-client-secret');
-      
-      // Verify management client credentials
-      if (!managementClientId || !managementClientSecret) {
-        return c.json({ 
-          error: 'Missing management client credentials',
-          details: 'Management client ID and secret are required'
-        }, 401);
-      }
-      
-      try {
-        await verifyManagementClient(managementClientId, managementClientSecret);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized RAG database update attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid management client credentials required.',
-          details: error.message
-        }, 403);
-      }
+      // Verify Bearer token with admin write permission
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.write']);
       
       const databaseId = c.req.param('id');
       
       if (!databaseId) {
         return c.json({ error: 'Database ID is required' }, 400);
       }
-      
-      // Parse request body
-      const config = await c.req.json();
       
       // For now, return not implemented
       return c.json({ 
@@ -195,28 +119,11 @@ export const deleteRAGDatabaseRoute = registerApiRoute('/rag/databases/:id', {
   method: 'DELETE',
   handler: async (c) => {
     try {
-      // Get management client credentials from headers
-      const managementClientId = c.req.header('x-management-client-id');
-      const managementClientSecret = c.req.header('x-management-client-secret');
+      // Verify Bearer token with admin write permission
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.write']);
       
-      // Verify management client credentials
-      if (!managementClientId || !managementClientSecret) {
-        return c.json({ 
-          error: 'Missing management client credentials',
-          details: 'Management client ID and secret are required'
-        }, 401);
-      }
-      
-      try {
-        await verifyManagementClient(managementClientId, managementClientSecret);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized RAG database deletion attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid management client credentials required.',
-          details: error.message
-        }, 403);
-      }
-      
+  
       const databaseId = c.req.param('id');
       
       if (!databaseId) {
@@ -244,27 +151,9 @@ export const uploadDocumentRoute = registerApiRoute('/rag/databases/:id/document
   method: 'POST',
   handler: async (c) => {
     try {
-      // Get management client credentials from headers
-      const managementClientId = c.req.header('x-management-client-id');
-      const managementClientSecret = c.req.header('x-management-client-secret');
-      
-      // Verify management client credentials
-      if (!managementClientId || !managementClientSecret) {
-        return c.json({ 
-          error: 'Missing management client credentials',
-          details: 'Management client ID and secret are required'
-        }, 401);
-      }
-      
-      try {
-        await verifyManagementClient(managementClientId, managementClientSecret);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized document upload attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid management client credentials required.',
-          details: error.message
-        }, 403);
-      }
+      // Verify Bearer token with admin write permission
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.write']);
       
       const databaseId = c.req.param('id');
       
@@ -304,7 +193,7 @@ export const uploadDocumentRoute = registerApiRoute('/rag/databases/:id/document
       const document = await ragService.uploadDocument(
         databaseId,
         fileObj,
-        managementClientId,
+        'admin',
         parsedMetadata
       );
       
@@ -326,27 +215,9 @@ export const listDocumentsRoute = registerApiRoute('/rag/databases/:id/documents
   method: 'GET',
   handler: async (c) => {
     try {
-      // Get management client credentials from headers
-      const managementClientId = c.req.header('x-management-client-id');
-      const managementClientSecret = c.req.header('x-management-client-secret');
-      
-      // Verify management client credentials
-      if (!managementClientId || !managementClientSecret) {
-        return c.json({ 
-          error: 'Missing management client credentials',
-          details: 'Management client ID and secret are required'
-        }, 401);
-      }
-      
-      try {
-        await verifyManagementClient(managementClientId, managementClientSecret);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized document list attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid management client credentials required.',
-          details: error.message
-        }, 403);
-      }
+      // Verify Bearer token with admin read permission
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.read']);
       
       const databaseId = c.req.param('id');
       
@@ -376,27 +247,9 @@ export const deleteDocumentRoute = registerApiRoute('/rag/databases/:id/document
   method: 'DELETE',
   handler: async (c) => {
     try {
-      // Get management client credentials from headers
-      const managementClientId = c.req.header('x-management-client-id');
-      const managementClientSecret = c.req.header('x-management-client-secret');
-      
-      // Verify management client credentials
-      if (!managementClientId || !managementClientSecret) {
-        return c.json({ 
-          error: 'Missing management client credentials',
-          details: 'Management client ID and secret are required'
-        }, 401);
-      }
-      
-      try {
-        await verifyManagementClient(managementClientId, managementClientSecret);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized document deletion attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid management client credentials required.',
-          details: error.message
-        }, 403);
-      }
+      // Verify Bearer token with admin write permission
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.write']);
       
       const documentId = c.req.param('docId');
       

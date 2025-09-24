@@ -1,30 +1,6 @@
 import { registerApiRoute } from '@mastra/core/server';
-import { applicationService, CreateApplicationRequest, UpdateApplicationRequest, AddComponentRequest, GrantClientPermissionRequest } from '../services/application-service';
-import { verifyAdminBearerToken } from './auth-utils';
-import { getSharedPostgresStore } from '../utils/database';
-import { PostgresStore } from '@mastra/pg';
-
-// PostgreSQL storage for database access
-let pgStore: PostgresStore | null = null;
-
-// Initialize PostgreSQL storage using shared connection
-async function initializeStorage() {
-  if (!pgStore) {
-    try {
-      pgStore = await getSharedPostgresStore();
-      if (pgStore) {
-        console.log('✅ Application routes: Using shared PostgreSQL connection');
-      } else {
-        console.warn('⚠️ Application routes: PostgreSQL not available');
-      }
-    } catch (error: any) {
-      console.warn('⚠️ Failed to initialize PostgreSQL storage:', error.message);
-      pgStore = null;
-    }
-  }
-}
-
-// Application management routes
+import { applicationService, CreateApplicationRequest, UpdateApplicationRequest, AddComponentRequest, GrantClientPermissionRequest } from '../mastra/services/application';
+import { verifyAdminBearerToken } from '../mastra/auth/auth-utils';
 
 // List all applications
 export const listApplicationsRoute = registerApiRoute('/applications', {
@@ -32,17 +8,8 @@ export const listApplicationsRoute = registerApiRoute('/applications', {
   handler: async (c) => {
     try {
       // Verify Bearer token with admin read permission
-      try {
-        const authHeader = c.req.header('Authorization');
-        await verifyAdminBearerToken(authHeader, ['admin.read']);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized applications list attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid admin token required.',
-          details: error.message
-        }, 403);
-      }
-
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.read']);
       const applications = await applicationService.listApplications();
       return c.json({ applications });
     } catch (error: any) {
@@ -58,17 +25,9 @@ export const createApplicationRoute = registerApiRoute('/applications', {
   handler: async (c) => {
     try {
       // Verify Bearer token with admin write permission
-      try {
-        const authHeader = c.req.header('Authorization');
-        await verifyAdminBearerToken(authHeader, ['admin.write']);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized application creation attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid admin token required.',
-          details: error.message
-        }, 403);
-      }
-
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.write']);
+ 
       const requestBody: CreateApplicationRequest = await c.req.json();
       
       if (!requestBody.name || !requestBody.display_name) {
@@ -98,16 +57,8 @@ export const getApplicationRoute = registerApiRoute('/applications/:id', {
   handler: async (c) => {
     try {
       // Verify Bearer token with admin read permission
-      try {
-        const authHeader = c.req.header('Authorization');
-        await verifyAdminBearerToken(authHeader, ['admin.read']);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized application access attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid admin token required.',
-          details: error.message
-        }, 403);
-      }
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.read']);
 
       const applicationId = c.req.param('id');
       const applicationDetails = await applicationService.getApplicationDetails(applicationId);
@@ -119,6 +70,12 @@ export const getApplicationRoute = registerApiRoute('/applications/:id', {
       return c.json({ application: applicationDetails });
     } catch (error: any) {
       console.error('Failed to get application:', error);
+      if (error.message?.includes('Unauthorized') || error.message?.includes('Invalid token')) {
+        return c.json({ 
+          error: 'Unauthorized. Valid admin token required.',
+          details: error.message
+        }, 403);
+      }
       return c.json({ error: 'Server error', details: error.message }, 500);
     }
   },
@@ -130,16 +87,8 @@ export const updateApplicationRoute = registerApiRoute('/applications/:id', {
   handler: async (c) => {
     try {
       // Verify Bearer token with admin write permission
-      try {
-        const authHeader = c.req.header('Authorization');
-        await verifyAdminBearerToken(authHeader, ['admin.write']);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized application update attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid admin token required.',
-          details: error.message
-        }, 403);
-      }
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.write']);
 
       const applicationId = c.req.param('id');
       const requestBody: UpdateApplicationRequest = await c.req.json();
@@ -150,6 +99,12 @@ export const updateApplicationRoute = registerApiRoute('/applications/:id', {
       return c.json({ application });
     } catch (error: any) {
       console.error('Failed to update application:', error);
+      if (error.message?.includes('Unauthorized') || error.message?.includes('Invalid token')) {
+        return c.json({ 
+          error: 'Unauthorized. Valid admin token required.',
+          details: error.message
+        }, 403);
+      }
       if (error.message.includes('No data returned')) {
         return c.json({ error: 'Application not found' }, 404);
       }
@@ -164,16 +119,8 @@ export const deleteApplicationRoute = registerApiRoute('/applications/:id', {
   handler: async (c) => {
     try {
       // Verify Bearer token with admin write permission
-      try {
-        const authHeader = c.req.header('Authorization');
-        await verifyAdminBearerToken(authHeader, ['admin.write']);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized application deletion attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid admin token required.',
-          details: error.message
-        }, 403);
-      }
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.write']);
 
       const applicationId = c.req.param('id');
       
@@ -189,9 +136,43 @@ export const deleteApplicationRoute = registerApiRoute('/applications/:id', {
       return c.json({ message: 'Application deleted successfully' });
     } catch (error: any) {
       console.error('Failed to delete application:', error);
+      if (error.message?.includes('Unauthorized') || error.message?.includes('Invalid token')) {
+        return c.json({ 
+          error: 'Unauthorized. Valid admin token required.',
+          details: error.message
+        }, 403);
+      }
       return c.json({ error: 'Server error', details: error.message }, 500);
     }
   },
+});
+
+
+// Route to fetch available components for dropdown selection
+const getAvailableComponentsRoute = registerApiRoute('/applications/:id/components', {
+  method: 'GET',
+  handler: async (c) => {
+    try {
+      const componentType = c.req.query('type');
+      
+      // Verify admin bearer token
+      const authHeader = c.req.header('authorization');
+      await verifyAdminBearerToken(authHeader || '', ['admin.read']);
+
+      const components = await applicationService.getAvailableComponents(componentType);
+      return c.json({ components });
+
+    } catch (error: any) {
+      console.error('❌ Failed to fetch available components:', error);
+      if (error.message?.includes('Unauthorized') || error.message?.includes('Invalid token')) {
+        return c.json({ 
+          error: 'Unauthorized. Valid admin token required.',
+          details: error.message
+        }, 403);
+      }
+      return c.json({ error: 'Failed to fetch available components' }, 500);
+    }
+  }
 });
 
 // Add component to application
@@ -200,16 +181,8 @@ export const addComponentRoute = registerApiRoute('/applications/:id/components'
   handler: async (c) => {
     try {
       // Verify Bearer token with admin write permission
-      try {
-        const authHeader = c.req.header('Authorization');
-        await verifyAdminBearerToken(authHeader, ['admin.write']);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized component addition attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid admin token required.',
-          details: error.message
-        }, 403);
-      }
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.write']);
 
       const applicationId = c.req.param('id');
       const requestBody: AddComponentRequest = await c.req.json();
@@ -224,6 +197,12 @@ export const addComponentRoute = registerApiRoute('/applications/:id/components'
       return c.json({ component }, 201);
     } catch (error: any) {
       console.error('Failed to add component:', error);
+      if (error.message?.includes('Unauthorized') || error.message?.includes('Invalid token')) {
+        return c.json({ 
+          error: 'Unauthorized. Valid admin token required.',
+          details: error.message
+        }, 403);
+      }
       if (error.message.includes('foreign key')) {
         return c.json({ error: 'Application not found' }, 404);
       }
@@ -241,16 +220,8 @@ export const removeComponentRoute = registerApiRoute('/applications/:id/componen
   handler: async (c) => {
     try {
       // Verify Bearer token with admin write permission
-      try {
-        const authHeader = c.req.header('Authorization');
-        await verifyAdminBearerToken(authHeader, ['admin.write']);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized component removal attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid admin token required.',
-          details: error.message
-        }, 403);
-      }
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.write']);
 
       const applicationId = c.req.param('id');
       const componentType = c.req.param('type');
@@ -262,27 +233,25 @@ export const removeComponentRoute = registerApiRoute('/applications/:id/componen
       return c.json({ message: 'Component removed successfully' });
     } catch (error: any) {
       console.error('Failed to remove component:', error);
+      if (error.message?.includes('Unauthorized') || error.message?.includes('Invalid token')) {
+        return c.json({ 
+          error: 'Unauthorized. Valid admin token required.',
+          details: error.message
+        }, 403);
+      }
       return c.json({ error: 'Server error', details: error.message }, 500);
     }
   },
 });
 
 // Grant client permission to application
-export const grantClientPermissionRoute = registerApiRoute('/applications/:id/permissions', {
+export const grantClientPermissionRoute = registerApiRoute('/applications/:id/permissions/:clientId', {
   method: 'POST',
   handler: async (c) => {
     try {
       // Verify Bearer token with admin write permission
-      try {
-        const authHeader = c.req.header('Authorization');
-        await verifyAdminBearerToken(authHeader, ['admin.write']);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized permission grant attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid admin token required.',
-          details: error.message
-        }, 403);
-      }
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.write']);
 
       const applicationId = c.req.param('id');
       const requestBody: GrantClientPermissionRequest = await c.req.json();
@@ -297,6 +266,12 @@ export const grantClientPermissionRoute = registerApiRoute('/applications/:id/pe
       return c.json({ permission }, 201);
     } catch (error: any) {
       console.error('Failed to grant permission:', error);
+      if (error.message?.includes('Unauthorized') || error.message?.includes('Invalid token')) {
+        return c.json({ 
+          error: 'Unauthorized. Valid admin token required.',
+          details: error.message
+        }, 403);
+      }
       if (error.message.includes('foreign key')) {
         return c.json({ error: 'Application or client not found' }, 404);
       }
@@ -311,16 +286,8 @@ export const revokeClientPermissionRoute = registerApiRoute('/applications/:id/p
   handler: async (c) => {
     try {
       // Verify Bearer token with admin write permission
-      try {
-        const authHeader = c.req.header('Authorization');
-        await verifyAdminBearerToken(authHeader, ['admin.write']);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized permission revocation attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid admin token required.',
-          details: error.message
-        }, 403);
-      }
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.write']);
 
       const applicationId = c.req.param('id');
       const clientId = c.req.param('clientId');
@@ -331,27 +298,25 @@ export const revokeClientPermissionRoute = registerApiRoute('/applications/:id/p
       return c.json({ message: 'Permission revoked successfully' });
     } catch (error: any) {
       console.error('Failed to revoke permission:', error);
+      if (error.message?.includes('Unauthorized') || error.message?.includes('Invalid token')) {
+        return c.json({ 
+          error: 'Unauthorized. Valid admin token required.',
+          details: error.message
+        }, 403);
+      }
       return c.json({ error: 'Server error', details: error.message }, 500);
     }
   },
 });
 
 // Get client's application permissions
-export const getClientPermissionsRoute = registerApiRoute('/clients/:clientId/permissions', {
+export const getClientPermissionsRoute = registerApiRoute('/applications/:id/permissions/:clientId', {
   method: 'GET',
   handler: async (c) => {
     try {
       // Verify Bearer token with admin read permission
-      try {
-        const authHeader = c.req.header('Authorization');
-        await verifyAdminBearerToken(authHeader, ['admin.read']);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized client permissions access attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid admin token required.',
-          details: error.message
-        }, 403);
-      }
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.read']);
 
       const clientId = c.req.param('clientId');
       const permissions = await applicationService.getClientApplicationPermissions(clientId);
@@ -359,82 +324,15 @@ export const getClientPermissionsRoute = registerApiRoute('/clients/:clientId/pe
       return c.json({ permissions });
     } catch (error: any) {
       console.error('Failed to get client permissions:', error);
+      if (error.message?.includes('Unauthorized') || error.message?.includes('Invalid token')) {
+        return c.json({ 
+          error: 'Unauthorized. Valid admin token required.',
+          details: error.message
+        }, 403);
+      }
       return c.json({ error: 'Server error', details: error.message }, 500);
     }
   },
-});
-
-// Route to fetch available components for dropdown selection
-const getAvailableComponentsRoute = registerApiRoute('/components/available', {
-  method: 'GET',
-  handler: async (c) => {
-    try {
-      const componentType = c.req.query('type');
-      
-      // Verify admin bearer token
-      const authHeader = c.req.header('authorization');
-      try {
-        await verifyAdminBearerToken(authHeader || '', ['admin.read'] );
-      } catch (error: any) {
-        return c.json({ 
-          error: error.message || 'Unauthorized' 
-        }, 401);
-      }
-
-      await initializeStorage();
-      if (!pgStore) {
-        return c.json({ error: 'Database not available' }, 500);
-      }
-
-      let components: any[] = [];
-
-      if (!componentType || componentType === 'agent') {
-        const agents = await pgStore.db.manyOrNone(`
-          SELECT id, name, display_name, 'agent' as component_type
-          FROM agent_definitions 
-          WHERE is_active = true 
-          ORDER BY display_name ASC
-        `);
-        components.push(...(agents || []));
-      }
-
-      if (!componentType || componentType === 'workflow') {
-        const workflows = await pgStore.db.manyOrNone(`
-          SELECT id, name, display_name, 'workflow' as component_type
-          FROM workflow_definitions 
-          WHERE is_active = true 
-          ORDER BY display_name ASC
-        `);
-        components.push(...(workflows || []));
-      }
-
-      if (!componentType || componentType === 'tool') {
-        const tools = await pgStore.db.manyOrNone(`
-          SELECT id, name, display_name, 'tool' as component_type
-          FROM tool_definitions 
-          WHERE is_active = true 
-          ORDER BY display_name ASC
-        `);
-        components.push(...(tools || []));
-      }
-
-      if (!componentType || componentType === 'rag_database') {
-        const ragDatabases = await pgStore.db.manyOrNone(`
-          SELECT id, name, display_name, 'rag_database' as component_type
-          FROM rag_database_definitions 
-          WHERE is_active = true 
-          ORDER BY display_name ASC
-        `);
-        components.push(...(ragDatabases || []));
-      }
-
-      return c.json({ components });
-
-    } catch (error: any) {
-      console.error('❌ Failed to fetch available components:', error);
-      return c.json({ error: 'Failed to fetch available components' }, 500);
-    }
-  }
 });
 
 // Export all routes as an array for easy registration

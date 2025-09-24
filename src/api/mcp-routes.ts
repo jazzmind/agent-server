@@ -1,6 +1,6 @@
 import { registerApiRoute } from '@mastra/core/server';
-import { MCPServerService } from '../services/mcp-server-service';
-import { verifyManagementClient } from './auth-utils';
+import { MCPServerService } from '../mastra/services/mcp-server';
+import { verifyAdminBearerToken } from '../mastra/auth/auth-utils';
 
 // Initialize MCP server service
 const mcpServerService = new MCPServerService();
@@ -12,27 +12,9 @@ export const createMCPServerRoute = registerApiRoute('/mcp/server', {
   method: 'POST',
   handler: async (c) => {
     try {
-      // Get management client credentials from headers
-      const managementClientId = c.req.header('x-management-client-id');
-      const managementClientSecret = c.req.header('x-management-client-secret');
-      
-      // Verify management client credentials
-      if (!managementClientId || !managementClientSecret) {
-        return c.json({ 
-          error: 'Missing management client credentials',
-          details: 'Management client ID and secret are required'
-        }, 401);
-      }
-      
-      try {
-        await verifyManagementClient(managementClientId, managementClientSecret);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized MCP server creation attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid management client credentials required.',
-          details: error.message
-        }, 403);
-      }
+      // Verify Bearer token with admin write permission
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.write']);
       
       // Parse request body
       const config = await c.req.json().catch(() => ({}));
@@ -58,27 +40,9 @@ export const getMCPServerInfoRoute = registerApiRoute('/mcp/server', {
   method: 'GET',
   handler: async (c) => {
     try {
-      // Get management client credentials from headers
-      const managementClientId = c.req.header('x-management-client-id');
-      const managementClientSecret = c.req.header('x-management-client-secret');
-      
-      // Verify management client credentials
-      if (!managementClientId || !managementClientSecret) {
-        return c.json({ 
-          error: 'Missing management client credentials',
-          details: 'Management client ID and secret are required'
-        }, 401);
-      }
-      
-      try {
-        await verifyManagementClient(managementClientId, managementClientSecret);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized MCP server info attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid management client credentials required.',
-          details: error.message
-        }, 403);
-      }
+      // Verify Bearer token with admin read permission
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.read']);
       
       // Get MCP server info
       const serverInfo = mcpServerService.getMCPServerInfo();
@@ -105,27 +69,9 @@ export const reloadMCPServerRoute = registerApiRoute('/mcp/server/reload', {
   method: 'POST',
   handler: async (c) => {
     try {
-      // Get management client credentials from headers
-      const managementClientId = c.req.header('x-management-client-id');
-      const managementClientSecret = c.req.header('x-management-client-secret');
-      
-      // Verify management client credentials
-      if (!managementClientId || !managementClientSecret) {
-        return c.json({ 
-          error: 'Missing management client credentials',
-          details: 'Management client ID and secret are required'
-        }, 401);
-      }
-      
-      try {
-        await verifyManagementClient(managementClientId, managementClientSecret);
-      } catch (error: any) {
-        console.warn('🚫 Unauthorized MCP server reload attempt:', error.message);
-        return c.json({ 
-          error: 'Unauthorized. Valid management client credentials required.',
-          details: error.message
-        }, 403);
-      }
+      // Verify Bearer token with admin write permission
+      const authHeader = c.req.header('Authorization');
+      await verifyAdminBearerToken(authHeader, ['admin.write']);
       
       // Parse request body
       const config = await c.req.json().catch(() => ({}));

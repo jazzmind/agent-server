@@ -269,6 +269,55 @@ export class ApplicationService {
       clientPermissions
     };
   }
+
+  // Get available components for application configuration
+  async getAvailableComponents(componentType?: string): Promise<any[]> {
+    await this.initializeStorage();
+    
+    let components: any[] = [];
+
+    if (!componentType || componentType === 'agent') {
+      const agents = await this.pgStore!.db.manyOrNone(`
+        SELECT id, name, display_name, 'agent' as component_type
+        FROM agent_definitions 
+        WHERE is_active = true 
+        ORDER BY display_name ASC
+      `);
+      components.push(...(agents || []));
+    }
+
+    if (!componentType || componentType === 'workflow') {
+      const workflows = await this.pgStore!.db.manyOrNone(`
+        SELECT id, name, display_name, 'workflow' as component_type
+        FROM workflow_definitions 
+        WHERE is_active = true 
+        ORDER BY display_name ASC
+      `);
+      components.push(...(workflows || []));
+    }
+
+    if (!componentType || componentType === 'tool') {
+      const tools = await this.pgStore!.db.manyOrNone(`
+        SELECT id, name, display_name, 'tool' as component_type
+        FROM tool_definitions 
+        WHERE is_active = true 
+        ORDER BY display_name ASC
+      `);
+      components.push(...(tools || []));
+    }
+
+    if (!componentType || componentType === 'rag_database') {
+      const ragDatabases = await this.pgStore!.db.manyOrNone(`
+        SELECT id, name, display_name, 'rag_database' as component_type
+        FROM rag_database_definitions 
+        WHERE is_active = true 
+        ORDER BY display_name ASC
+      `);
+      components.push(...(ragDatabases || []));
+    }
+
+    return components;
+  }
 }
 
 // Singleton instance

@@ -124,13 +124,13 @@ interface NetworkAgentRole {
 function getModelFromString(modelString: string) {
   // Map database model names to actual OpenAI models
   const modelMapping: Record<string, string> = {
-    'gpt-5': 'gpt-4-turbo-preview',
-    'gpt-5-mini': 'gpt-3.5-turbo',
-    'gpt-5-nano': 'gpt-3.5-turbo',
-    'gpt-4o': 'gpt-4-turbo-preview',
-    'gpt-4o-mini': 'gpt-3.5-turbo',
-    'gpt-4-turbo': 'gpt-4-turbo-preview',
-    'gpt-3.5-turbo': 'gpt-3.5-turbo',
+    'gpt-5': 'gpt-5',
+    'gpt-5-mini': 'gpt-5-mini',
+    'gpt-5-nano': 'gpt-5-nano',
+    'gpt-4o': 'gpt-5-nano',
+    'gpt-4o-mini': 'gpt-5-nano',
+    'gpt-4-turbo': 'gpt-5-nano',
+    'gpt-3.5-turbo': 'gpt-5-nano',
   };
 
   const lowerModel = modelString.toLowerCase();
@@ -142,8 +142,8 @@ function getModelFromString(modelString: string) {
   }
 
   // Default to gpt-3.5-turbo for unknown models
-  console.warn(`Unknown model: ${modelString}, defaulting to gpt-3.5-turbo`);
-  return openai('gpt-3.5-turbo');
+  console.warn(`Unknown model: ${modelString}, defaulting to gpt-5-nano`);
+  return openai('gpt-5-nano');
 }
 
 export class DynamicLoader {
@@ -327,7 +327,7 @@ export class DynamicLoader {
           }
 
           // Get model instance
-          const model = getModelFromString(definition.model || 'gpt-3.5-turbo');
+          const model = getModelFromString(definition.model || 'gpt-5-nano');
 
           // Get shared storage for memory
           const sharedPgStore = await getSharedPostgresStore();

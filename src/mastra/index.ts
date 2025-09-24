@@ -12,9 +12,9 @@ import { weatherAgent } from './agents/weather-agent';
 import { weatherTool } from './tools/weather-tool';
 import { VercelDeployer } from "@mastra/deployer-vercel";
 import { ConsoleLogger } from '@mastra/core/logger';
-import { authRoutes } from './auth/auth-routes';
+import { apiRoutes } from '../api/index';
 import { DynamicLoader } from './services/dynamic-loader';
-import { verifyAdminBearerToken } from './auth/auth-utils';
+import { verifyBearerToken } from './auth/auth-utils';
 
 // Initialize dynamic loader
 const dynamicLoader = new DynamicLoader();
@@ -56,30 +56,30 @@ export const mastra = new Mastra({
   logger: new ConsoleLogger(),
   // Start without storage to avoid duplicate connections - will be set up in enhancement
   server: {
-    apiRoutes: authRoutes,
+    apiRoutes: apiRoutes,
     middleware: [
       {
         handler: async (c, next) => {
           // Skip auth for playground API routes in development
-          const url = new URL(c.req.url);
-          const isPlaygroundRoute = url.pathname.startsWith('/api/agents') ||
-                                   url.pathname.startsWith('/api/tools') ||
-                                   url.pathname.startsWith('/api/workflows') ||
-                                   url.pathname.startsWith('/api/networks') ||
-                                   url.pathname.startsWith('/api/scorers');
+          // const url = new URL(c.req.url);
+          // const isPlaygroundRoute = url.pathname.startsWith('/api/agents') ||
+          //                          url.pathname.startsWith('/api/tools') ||
+          //                          url.pathname.startsWith('/api/workflows') ||
+          //                          url.pathname.startsWith('/api/networks') ||
+          //                          url.pathname.startsWith('/api/scorers');
 
-          if (process.env.NODE_ENV === 'development' && isPlaygroundRoute) {
-            await next();
-            return;
-          }
+          // if (process.env.NODE_ENV === 'development' && isPlaygroundRoute) {
+          //   await next();
+          //   return;
+          // }
 
           // Require auth for other /api/* routes
           const authHeader = c.req.header("Authorization");
           if (!authHeader) {
             return new Response("Unauthorized", { status: 401 });
           }
-          // Verify Bearer token with admin read permission
-          await verifyAdminBearerToken(authHeader, ['admin.read', 'admin.write']);
+          // Verify Bearer token is valid; we'll check the scopes later
+          await verifyBearerToken(authHeader, []);
           await next();
         },
         path: "/api/*",

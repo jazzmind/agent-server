@@ -59,8 +59,16 @@ export function loadPublicKeys() {
   return keys;
 }
 
-// Verify Bearer token for admin endpoints
 export async function verifyAdminBearerToken(authorizationHeader?: string, requiredScopes?: string[]) {
+  return verifyBearerToken(authorizationHeader, requiredScopes);
+}
+
+export async function verifyClientBearerToken(authorizationHeader?: string, requiredScopes?: string[]) {
+  return verifyBearerToken(authorizationHeader, requiredScopes);
+}
+
+// Verify Bearer token for admin endpoints
+export async function verifyBearerToken(authorizationHeader?: string, requiredScopes?: string[]) {
   if (!authorizationHeader?.startsWith('Bearer ')) {
     throw new Error('Missing or invalid authorization header');
   }
@@ -106,17 +114,17 @@ export async function verifyAdminBearerToken(authorizationHeader?: string, requi
   }
 }
 
-// Verify management client credentials
-export async function verifyManagementClient(clientId: string, clientSecret: string) {
-  const managementClientId = process.env.MANAGEMENT_CLIENT_ID;
-  const managementClientSecret = process.env.MANAGEMENT_CLIENT_SECRET;
+// Verify admin client credentials
+export async function verifyAdminClient(clientId: string, clientSecret: string) {
+  const adminClientId = process.env.ADMIN_CLIENT_ID;
+  const adminClientSecret = process.env.ADMIN_CLIENT_SECRET;
   
-  if (!managementClientId || !managementClientSecret) {
-    throw new Error('Management client credentials not configured');
+  if (!adminClientId || !adminClientSecret) {
+    throw new Error('admin client credentials not configured');
   }
   
-  if (clientId !== managementClientId || clientSecret !== managementClientSecret) {
-    throw new Error('Invalid management client credentials');
+  if (clientId !== adminClientId || clientSecret !== adminClientSecret) {
+    throw new Error('Invalid admin client credentials');
   }
   
   return true;
