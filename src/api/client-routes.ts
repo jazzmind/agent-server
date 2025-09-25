@@ -135,17 +135,17 @@ export const clientRegistrationRoute = registerApiRoute('/clients/register', {
       try {
         const clientId = c.req.param('clientId');
         const requestBody = await c.req.json();
-        const { scopes } = requestBody;
-        
+        const { name, global_scopes } = requestBody;
+        console.log('requestBody', requestBody);
         // Verify Bearer token with admin write permission
         const authHeader = c.req.header('Authorization');
         await verifyAdminBearerToken(authHeader, ['client.write']);
         
-        if (!Array.isArray(scopes)) {
+        if (!Array.isArray(global_scopes)) {
           return c.json({ error: 'Scopes must be an array' }, 400);
         }
         
-        const request: UpdateClientRequest = { scopes };
+      const request: UpdateClientRequest = { name, scopes: global_scopes };
         const updated = await clientService.updateClient(clientId, request);
         
         if (!updated) {
@@ -155,7 +155,7 @@ export const clientRegistrationRoute = registerApiRoute('/clients/register', {
         console.log(`📝 Updated client scopes: ${clientId}`);
         return c.json({ 
           message: 'Client updated successfully', 
-          client: { clientId, scopes }
+          client: { clientId, scopes: global_scopes }
         });
         
       } catch (error: any) {

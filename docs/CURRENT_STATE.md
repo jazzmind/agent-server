@@ -240,9 +240,7 @@ MASTRA_JWT_SECRET=secure-jwt-secret
 
 # Optional Development
 NODE_ENV=development
-KEYS_DIR=keys
-SERVERS_DB_FILE=servers.json
-```
+
 
 ### Admin Client (.env.local)
 ```bash
@@ -271,9 +269,9 @@ TOKEN_SERVICE_AUD=https://tools.local/admin
 |--------|----------|-------------|---------|
 | GET | `/.well-known/jwks.json` | JWKS public keys | ✅ Production Ready |
 | POST | `/token` | OAuth 2.0 token endpoint | ✅ Production Ready |
-| POST | `/servers/register` | Register client (mgmt auth) | ✅ Production Ready |
-| GET | `/servers` | List clients (mgmt auth) | ✅ Production Ready |
-| DELETE | `/servers/:clientId` | Delete client (mgmt auth) | ✅ Production Ready |
+| POST | `/clients/register` | Register client (mgmt auth) | ✅ Production Ready |
+| GET | `/clients` | List clients (mgmt auth) | ✅ Production Ready |
+| DELETE | `/clients/:clientId` | Delete client (mgmt auth) | ✅ Production Ready |
 | POST | `/admin/reload` | Reload dynamic definitions | ✅ Basic Implementation |
 | GET | `/auth/health` | System health check | ✅ Production Ready |
 

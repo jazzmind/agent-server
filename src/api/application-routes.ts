@@ -149,12 +149,12 @@ export const deleteApplicationRoute = registerApiRoute('/applications/:id', {
 
 
 // Route to fetch available components for dropdown selection
-const getAvailableComponentsRoute = registerApiRoute('/applications/:id/components', {
+const getAvailableComponentsRoute = registerApiRoute('/components', {
   method: 'GET',
   handler: async (c) => {
     try {
       const componentType = c.req.query('type');
-      
+      console.log('componentType', componentType);    
       // Verify admin bearer token
       const authHeader = c.req.header('authorization');
       await verifyAdminBearerToken(authHeader || '', ['admin.read']);
@@ -176,17 +176,16 @@ const getAvailableComponentsRoute = registerApiRoute('/applications/:id/componen
 });
 
 // Add component to application
-export const addComponentRoute = registerApiRoute('/applications/:id/components', {
+export const addComponentRoute = registerApiRoute('/components/applications/:id', {
   method: 'POST',
   handler: async (c) => {
     try {
       // Verify Bearer token with admin write permission
       const authHeader = c.req.header('Authorization');
       await verifyAdminBearerToken(authHeader, ['admin.write']);
-
+      
       const applicationId = c.req.param('id');
       const requestBody: AddComponentRequest = await c.req.json();
-      
       if (!requestBody.component_type || !requestBody.component_id || !requestBody.component_name) {
         return c.json({ error: 'Missing required fields: component_type, component_id, component_name' }, 400);
       }
@@ -215,7 +214,7 @@ export const addComponentRoute = registerApiRoute('/applications/:id/components'
 });
 
 // Remove component from application
-export const removeComponentRoute = registerApiRoute('/applications/:id/components/:type/:componentId', {
+export const removeComponentRoute = registerApiRoute('/components/applications/:id/:type/:componentId', {
   method: 'DELETE',
   handler: async (c) => {
     try {

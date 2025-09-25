@@ -158,7 +158,7 @@ export const tokenRoute = registerApiRoute('/token', {
       const clientSecret = formData.get('client_secret')?.toString();
       const audience = formData.get('audience')?.toString();
       const scope = formData.get('scope')?.toString();
-
+      console.log('formData', formData);
       if (grantType !== 'client_credentials') {
         return c.json({ error: 'unsupported_grant_type' }, 400);
       }
@@ -173,7 +173,7 @@ export const tokenRoute = registerApiRoute('/token', {
 
       // Verify client credentials
       const clientInfo = await verifyClientCredentials(clientId, clientSecret);
-      
+      console.log('clientInfo', clientInfo);
       // Parse requested scopes
       const requestedScopes = scope ? scope.split(' ') : [];
       

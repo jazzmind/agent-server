@@ -1,6 +1,7 @@
 import { PostgresStore } from '@mastra/pg';
 import { getSharedPostgresStore } from '../utils/database';
 import { randomUUID } from 'crypto';
+import { ApplicationService } from './application';
 
 export interface Client {
   client_id: string;
@@ -19,6 +20,7 @@ export interface CreateClientRequest {
 }
 
 export interface UpdateClientRequest {
+  name: string;
   scopes: string[];
 }
 
@@ -104,6 +106,17 @@ export class ClientService {
     return clients || [];
   }
 
+  async getClient(clientId: string): Promise<Client | null> {
+    await this.initializeStorage();
+    
+    const client = await this.pgStore!.db.oneOrNone(
+      'SELECT * FROM client_registrations WHERE client_id = $1',
+      [clientId]
+    );
+    
+    return client || null;
+  }
+
   async deleteClient(clientId: string): Promise<boolean> {
     await this.initializeStorage();
     
@@ -118,11 +131,11 @@ export class ClientService {
   async updateClient(clientId: string, request: UpdateClientRequest): Promise<boolean> {
     await this.initializeStorage();
     
-    const { scopes } = request;
+    const { name, scopes } = request;
     
     const result = await this.pgStore!.db.result(
-      'UPDATE client_registrations SET scopes = $1, updated_at = NOW() WHERE client_id = $2',
-      [scopes, clientId]
+      'UPDATE client_registrations SET scopes = $1, name = $2, updated_at = NOW() WHERE client_id = $2',
+      [scopes, name, clientId]
     );
     
     return result.rowCount > 0;
@@ -192,15 +205,20 @@ export class ClientService {
       [clientId]
     );
     
-    if (client && client.client_secret === clientSecret) {
-      return {
-        clientId,
-        name: client.name,
-        scopes: client.scopes || []
-      };
+    if (!client || client.client_secret !== clientSecret) {
+      return null;
     }
-    
-    return null;
+
+    // we also need to get the scopes from the application service
+    const applicationService = new ApplicationService();
+    const applicationScopes = await applicationService.getClientApplicationPermissions(clientId) || [];
+    console.log('applicationScopes', applicationScopes);
+    const combinedScopes = [...client.scopes, ...applicationScopes.map(scope => scope.component_scopes).flat()];
+    return {
+      clientId,
+      name: client.name,
+      scopes: combinedScopes || []
+      };  
   }
 
   async getClientRegistrationCount(): Promise<number> {

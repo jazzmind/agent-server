@@ -69,7 +69,7 @@ scope=weather.read
 
 ### Server Registration
 ```
-POST /servers/register
+POST /clients/register
 Content-Type: application/json
 
 {
@@ -81,7 +81,7 @@ Content-Type: application/json
 
 ### List Servers
 ```
-GET /servers
+GET /clients
 ```
 
 ### Health Check
@@ -91,7 +91,7 @@ GET /auth/health
 
 ## Authentication Flow
 
-1. **Client Registration**: Register client with scopes via `/servers/register`
+1. **Client Registration**: Register client with scopes via `/clients/register`
 2. **Token Request**: Client uses credentials to request access token via OAuth 2.0
 3. **API Access**: Client uses access token to call protected APIs
 4. **Token Verification**: Server verifies access token using JWKS

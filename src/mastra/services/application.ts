@@ -278,7 +278,7 @@ export class ApplicationService {
 
     if (!componentType || componentType === 'agent') {
       const agents = await this.pgStore!.db.manyOrNone(`
-        SELECT id, name, display_name, 'agent' as component_type
+        SELECT id, name, display_name, 'agent' as component_type, scopes
         FROM agent_definitions 
         WHERE is_active = true 
         ORDER BY display_name ASC
@@ -288,7 +288,7 @@ export class ApplicationService {
 
     if (!componentType || componentType === 'workflow') {
       const workflows = await this.pgStore!.db.manyOrNone(`
-        SELECT id, name, display_name, 'workflow' as component_type
+        SELECT id, name, display_name, 'workflow' as component_type, scopes
         FROM workflow_definitions 
         WHERE is_active = true 
         ORDER BY display_name ASC
@@ -298,7 +298,7 @@ export class ApplicationService {
 
     if (!componentType || componentType === 'tool') {
       const tools = await this.pgStore!.db.manyOrNone(`
-        SELECT id, name, display_name, 'tool' as component_type
+        SELECT id, name, display_name, 'tool' as component_type, scopes
         FROM tool_definitions 
         WHERE is_active = true 
         ORDER BY display_name ASC
@@ -308,12 +308,32 @@ export class ApplicationService {
 
     if (!componentType || componentType === 'rag_database') {
       const ragDatabases = await this.pgStore!.db.manyOrNone(`
-        SELECT id, name, display_name, 'rag_database' as component_type
+        SELECT id, name, display_name, 'rag_database' as component_type, scopes
         FROM rag_database_definitions 
         WHERE is_active = true 
         ORDER BY display_name ASC
       `);
       components.push(...(ragDatabases || []));
+    }
+
+    if (!componentType || componentType === 'scorer') {
+      const scorers = await this.pgStore!.db.manyOrNone(`
+        SELECT id, name, display_name, 'scorer' as component_type, scopes
+        FROM scorer_definitions 
+        WHERE is_active = true 
+        ORDER BY display_name ASC
+      `);
+      components.push(...(scorers || []));
+    }
+
+    if (!componentType || componentType === 'network') {
+      const networks = await this.pgStore!.db.manyOrNone(`
+        SELECT id, name, display_name, 'network' as component_type, scopes
+        FROM network_definitions 
+        WHERE is_active = true 
+        ORDER BY display_name ASC
+      `);
+      components.push(...(networks || []));
     }
 
     return components;

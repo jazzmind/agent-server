@@ -265,9 +265,9 @@ TOKEN_SERVICE_AUD=https://tools.local/admin
 |--------|----------|-------------|---------------|
 | GET | `/.well-known/jwks.json` | Public keys for JWT verification | None |
 | POST | `/token` | OAuth 2.0 token endpoint | Client credentials |
-| POST | `/servers/register` | Register new client | Management client |
-| GET | `/servers` | List all clients | Management client |
-| DELETE | `/servers/:clientId` | Delete client | Management client |
+| POST | `/clients/register` | Register new client | Management client |
+| GET | `/clients` | List all clients | Management client |
+| DELETE | `/clients/:clientId` | Delete client | Management client |
 | POST | `/admin/reload` | Reload dynamic definitions | Management client |
 | GET | `/auth/health` | System health check | None |
 

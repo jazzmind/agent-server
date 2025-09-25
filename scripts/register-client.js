@@ -42,7 +42,7 @@ async function registerClient() {
       console.log('🔒 Using admin key for production registration');
     }
     
-    const response = await fetch(`${TOKEN_SERVICE_URL}/servers/register`, {
+    const response = await fetch(`${TOKEN_SERVICE_URL}/clients/register`, {
       method: 'POST',
       headers,
       body: JSON.stringify({

@@ -1,6 +1,6 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { verifyToken } from "../utils/utils";
+import { verifyBearerToken } from "../auth/auth-utils";
 
 interface GeocodingResponse {
   results: {
@@ -38,8 +38,9 @@ export const weatherTool = createTool({
     location: z.string(),
   }),
   execute: async ({ context }) => {
-    const { clientId } = await verifyToken(`Bearer ${context.authToken}`, "weather.read");
-    console.log(`Weather tool executed by client ${clientId}`);
+    console.log(`Weather tool executed by client ${context.authToken}`);
+    // const { clientId } = await verifyBearerToken(`Bearer ${context.authToken}`, ["agent.read"]);
+    // console.log(`Weather tool executed by client ${clientId}`);
     return await getWeather(context.location);
   },
 });
