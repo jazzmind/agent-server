@@ -3,7 +3,7 @@ import { applicationService, CreateApplicationRequest, UpdateApplicationRequest,
 import { verifyAdminBearerToken } from '../mastra/auth/auth-utils';
 
 // List all applications
-export const listApplicationsRoute = registerApiRoute('/applications', {
+export const listApplicationsRoute = registerApiRoute('/admin/applications', {
   method: 'GET',
   handler: async (c) => {
     try {
@@ -20,7 +20,7 @@ export const listApplicationsRoute = registerApiRoute('/applications', {
 });
 
 // Create new application
-export const createApplicationRoute = registerApiRoute('/applications', {
+export const createApplicationRoute = registerApiRoute('/admin/applications', {
   method: 'POST',
   handler: async (c) => {
     try {
@@ -52,7 +52,7 @@ export const createApplicationRoute = registerApiRoute('/applications', {
 });
 
 // Get application details
-export const getApplicationRoute = registerApiRoute('/applications/:id', {
+export const getApplicationRoute = registerApiRoute('/admin/applications/:id', {
   method: 'GET',
   handler: async (c) => {
     try {
@@ -82,7 +82,7 @@ export const getApplicationRoute = registerApiRoute('/applications/:id', {
 });
 
 // Update application
-export const updateApplicationRoute = registerApiRoute('/applications/:id', {
+export const updateApplicationRoute = registerApiRoute('/admin/applications/:id', {
   method: 'PUT',
   handler: async (c) => {
     try {
@@ -114,7 +114,7 @@ export const updateApplicationRoute = registerApiRoute('/applications/:id', {
 });
 
 // Delete application
-export const deleteApplicationRoute = registerApiRoute('/applications/:id', {
+export const deleteApplicationRoute = registerApiRoute('/admin/applications/:id', {
   method: 'DELETE',
   handler: async (c) => {
     try {
@@ -149,7 +149,7 @@ export const deleteApplicationRoute = registerApiRoute('/applications/:id', {
 
 
 // Route to fetch available components for dropdown selection
-const getAvailableComponentsRoute = registerApiRoute('/components', {
+const getAvailableComponentsRoute = registerApiRoute('/admin/components', {
   method: 'GET',
   handler: async (c) => {
     try {
@@ -176,7 +176,7 @@ const getAvailableComponentsRoute = registerApiRoute('/components', {
 });
 
 // Add component to application
-export const addComponentRoute = registerApiRoute('/components/applications/:id', {
+export const addComponentRoute = registerApiRoute('/admin/components/applications/:id', {
   method: 'POST',
   handler: async (c) => {
     try {
@@ -214,7 +214,7 @@ export const addComponentRoute = registerApiRoute('/components/applications/:id'
 });
 
 // Remove component from application
-export const removeComponentRoute = registerApiRoute('/components/applications/:id/:type/:componentId', {
+export const removeComponentRoute = registerApiRoute('/admin/components/applications/:id/:type/:componentId', {
   method: 'DELETE',
   handler: async (c) => {
     try {
@@ -244,7 +244,7 @@ export const removeComponentRoute = registerApiRoute('/components/applications/:
 });
 
 // Grant client permission to application
-export const grantClientPermissionRoute = registerApiRoute('/applications/:id/permissions/:clientId', {
+export const grantClientPermissionRoute = registerApiRoute('/admin/applications/:id/permissions/:clientId', {
   method: 'POST',
   handler: async (c) => {
     try {
@@ -280,7 +280,7 @@ export const grantClientPermissionRoute = registerApiRoute('/applications/:id/pe
 });
 
 // Revoke client permission from application
-export const revokeClientPermissionRoute = registerApiRoute('/applications/:id/permissions/:clientId', {
+export const revokeClientPermissionRoute = registerApiRoute('/admin/applications/:id/permissions/:clientId', {
   method: 'DELETE',
   handler: async (c) => {
     try {
@@ -309,7 +309,7 @@ export const revokeClientPermissionRoute = registerApiRoute('/applications/:id/p
 });
 
 // Get client's application permissions
-export const getClientPermissionsRoute = registerApiRoute('/applications/:id/permissions/:clientId', {
+export const getClientPermissionsRoute = registerApiRoute('/admin/applications/:id/permissions/:clientId', {
   method: 'GET',
   handler: async (c) => {
     try {

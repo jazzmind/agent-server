@@ -1,9 +1,12 @@
 import { registerApiRoute } from '@mastra/core/server';
 import { agentService, CreateAgentRequest, UpdateAgentRequest } from '../mastra/services/agent';
 import { verifyAdminBearerToken } from '../mastra/auth/auth-utils';
+import { DynamicLoader } from '../mastra/services/dynamic-loader';
+import { weatherAgent } from '../mastra/agents/weather-agent';
 
-// List all agents
-export const listAgentsRoute = registerApiRoute('/agents', {
+const dynamicLoader = new DynamicLoader();
+// List all agents (both hardcoded and database)
+export const listAgentsRoute = registerApiRoute('/admin/agents', {
   method: 'GET',
   handler: async (c) => {
     try {
@@ -18,12 +21,55 @@ export const listAgentsRoute = registerApiRoute('/agents', {
       const limit = c.req.query('limit') ? parseInt(c.req.query('limit')!) : undefined;
       const offset = c.req.query('offset') ? parseInt(c.req.query('offset')!) : undefined;
       
-      const agents = await agentService.listAgents({
+      // Get database agents
+      const databaseAgents = await agentService.listAgents({
         active_only: activeOnly,
         scopes,
         limit,
         offset
       });
+      
+      // Get hardcoded agents 
+      const hardcodedAgents = { weatherAgent };
+      const allMastraAgents = await dynamicLoader.getAllAgents(hardcodedAgents);
+      
+      // Transform to consistent format with source type
+      const agents = [];
+      
+      // Add database agents
+      for (const dbAgent of databaseAgents) {
+        agents.push({
+          ...dbAgent,
+          source: 'database',
+          editable: true,
+          deletable: true
+        });
+      }
+      
+      // Add hardcoded agents that aren't overridden by database agents
+      const dbAgentNames = new Set(databaseAgents.map(a => a.name));
+      for (const [name, mastraAgent] of Object.entries(hardcodedAgents)) {
+        if (!dbAgentNames.has(name)) {
+          // Extract info from Mastra Agent instance
+          const agentConfig = (mastraAgent as any).config || {};
+          agents.push({
+            id: name,
+            name: name,
+            display_name: agentConfig.name || name,
+            description: agentConfig.instructions?.substring(0, 200) + '...' || 'Hardcoded agent',
+            model: agentConfig.model?.modelId || agentConfig.model || 'unknown',
+            instructions: agentConfig.instructions || '',
+            tools: Object.keys(agentConfig.tools || {}),
+            scopes: [], // Hardcoded agents don't have scopes in DB
+            is_active: true,
+            created_at: new Date('2024-01-01').toISOString(), // Default date for hardcoded
+            updated_at: new Date('2024-01-01').toISOString(),
+            source: 'hardcoded',
+            editable: false,
+            deletable: false
+          });
+        }
+      }
       
       return c.json({ agents });
     } catch (error: any) {
@@ -40,7 +86,7 @@ export const listAgentsRoute = registerApiRoute('/agents', {
 });
 
 // Create new agent
-export const createAgentRoute = registerApiRoute('/agents', {
+export const createAgentRoute = registerApiRoute('/admin/agents', {
   method: 'POST',
   handler: async (c) => {
     try {
@@ -78,7 +124,7 @@ export const createAgentRoute = registerApiRoute('/agents', {
 });
 
 // Get agent details
-export const getAgentRoute = registerApiRoute('/agents/:id', {
+export const getAgentRoute = registerApiRoute('/admin/agents/:id', {
   method: 'GET',
   handler: async (c) => {
     try {
@@ -108,7 +154,7 @@ export const getAgentRoute = registerApiRoute('/agents/:id', {
 });
 
 // Update agent
-export const updateAgentRoute = registerApiRoute('/agents/:id', {
+export const updateAgentRoute = registerApiRoute('/admin/agents/:id', {
   method: 'PUT',
   handler: async (c) => {
     try {
@@ -117,6 +163,13 @@ export const updateAgentRoute = registerApiRoute('/agents/:id', {
       await verifyAdminBearerToken(authHeader, ['admin.write']);
 
       const agentId = c.req.param('id');
+      
+      // Check if this is a hardcoded agent
+      const hardcodedAgentNames = Object.keys({ weatherAgent });
+      if (hardcodedAgentNames.includes(agentId)) {
+        return c.json({ error: 'Cannot edit hardcoded agents' }, 400);
+      }
+      
       const requestBody: UpdateAgentRequest = await c.req.json();
       
       const agent = await agentService.updateAgent(agentId, requestBody);
@@ -140,7 +193,7 @@ export const updateAgentRoute = registerApiRoute('/agents/:id', {
 });
 
 // Delete agent
-export const deleteAgentRoute = registerApiRoute('/agents/:id', {
+export const deleteAgentRoute = registerApiRoute('/admin/agents/:id', {
   method: 'DELETE',
   handler: async (c) => {
     try {
@@ -149,6 +202,12 @@ export const deleteAgentRoute = registerApiRoute('/agents/:id', {
       await verifyAdminBearerToken(authHeader, ['admin.write']);
 
       const agentId = c.req.param('id');
+      
+      // Check if this is a hardcoded agent
+      const hardcodedAgentNames = Object.keys({ weatherAgent });
+      if (hardcodedAgentNames.includes(agentId)) {
+        return c.json({ error: 'Cannot delete hardcoded agents' }, 400);
+      }
       
       // Check if agent exists first
       const agent = await agentService.getAgent(agentId);
@@ -174,7 +233,7 @@ export const deleteAgentRoute = registerApiRoute('/agents/:id', {
 });
 
 // Activate agent
-export const activateAgentRoute = registerApiRoute('/agents/:id/activate', {
+export const activateAgentRoute = registerApiRoute('/admin/agents/:id/activate', {
   method: 'POST',
   handler: async (c) => {
     try {
@@ -204,7 +263,7 @@ export const activateAgentRoute = registerApiRoute('/agents/:id/activate', {
 });
 
 // Deactivate agent
-export const deactivateAgentRoute = registerApiRoute('/agents/:id/deactivate', {
+export const deactivateAgentRoute = registerApiRoute('/admin/agents/:id/deactivate', {
   method: 'POST',
   handler: async (c) => {
     try {
@@ -234,7 +293,7 @@ export const deactivateAgentRoute = registerApiRoute('/agents/:id/deactivate', {
 });
 
 // Search agents
-export const searchAgentsRoute = registerApiRoute('/agents/search', {
+export const searchAgentsRoute = registerApiRoute('/admin/agents/search', {
   method: 'GET',
   handler: async (c) => {
     try {
@@ -265,7 +324,7 @@ export const searchAgentsRoute = registerApiRoute('/agents/search', {
 });
 
 // Get agents by scope
-export const getAgentsByScopeRoute = registerApiRoute('/agents/scope/:scope', {
+export const getAgentsByScopeRoute = registerApiRoute('/admin/agents/scope/:scope', {
   method: 'GET',
   handler: async (c) => {
     try {

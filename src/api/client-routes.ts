@@ -4,7 +4,7 @@ import { clientService, CreateClientRequest, UpdateClientRequest } from '../mast
 
 
 // Client registration endpoint (protected)
-export const clientRegistrationRoute = registerApiRoute('/clients/register', {
+export const clientRegistrationRoute = registerApiRoute('/admin/clients/register', {
     method: 'POST',
     handler: async (c) => {
       try {
@@ -62,7 +62,7 @@ export const clientRegistrationRoute = registerApiRoute('/clients/register', {
   });
   
   // List clients endpoint
-  export const listClientsRoute = registerApiRoute('/clients', {
+  export const listClientsRoute = registerApiRoute('/admin/clients', {
     method: 'GET',
     handler: async (c) => {
       try {
@@ -96,7 +96,7 @@ export const clientRegistrationRoute = registerApiRoute('/clients/register', {
   });
   
   // Delete client endpoint (protected)
-  export const deleteClientRoute = registerApiRoute('/clients/:clientId', {
+  export const deleteClientRoute = registerApiRoute('/admin/clients/:clientId', {
     method: 'DELETE',
     handler: async (c) => {
       try {
@@ -129,7 +129,7 @@ export const clientRegistrationRoute = registerApiRoute('/clients/register', {
   });
   
   // Update client endpoint (protected)
-  export const updateClientRoute = registerApiRoute('/clients/:clientId', {
+  export const updateClientRoute = registerApiRoute('/admin/clients/:clientId', {
     method: 'PATCH',
     handler: async (c) => {
       try {
@@ -172,7 +172,7 @@ export const clientRegistrationRoute = registerApiRoute('/clients/register', {
   });
   
   // Get client secret endpoint (protected)
-  export const getClientSecretRoute = registerApiRoute('/clients/:clientId/secret', {
+  export const getClientSecretRoute = registerApiRoute('/admin/clients/:clientId/secret', {
     method: 'GET',
     handler: async (c) => {
       try {
@@ -205,7 +205,7 @@ export const clientRegistrationRoute = registerApiRoute('/clients/register', {
   });
   
   // Reset client secret endpoint (protected)
-  export const resetClientSecretRoute = registerApiRoute('/clients/:clientId/secret', {
+  export const resetClientSecretRoute = registerApiRoute('/admin/clients/:clientId/secret', {
     method: 'POST',
     handler: async (c) => {
       try {

@@ -5,9 +5,22 @@ export interface AgentDefinition {
   id: string;
   name: string;
   display_name: string;
+  description?: string;
   instructions: string;
   model: string;
+  max_retries?: number;
   tools: any[];
+  workflows?: string[]; // Array of workflow names/IDs
+  agents?: string[]; // Array of agent names/IDs this agent can reference
+  scorers?: string[]; // Array of scorer names/IDs
+  evals?: Record<string, any>; // Evaluation metrics
+  memory_config?: Record<string, any>; // Memory configuration
+  voice_config?: Record<string, any>; // Voice configuration
+  input_processors?: string[]; // Array of input processor names
+  output_processors?: string[]; // Array of output processor names
+  default_generate_options?: Record<string, any>;
+  default_stream_options?: Record<string, any>;
+  telemetry_enabled?: boolean;
   scopes: string[];
   is_active: boolean;
   created_by?: string;
@@ -18,18 +31,44 @@ export interface AgentDefinition {
 export interface CreateAgentRequest {
   name: string;
   display_name: string;
+  description?: string;
   instructions: string;
   model?: string;
+  max_retries?: number;
   tools?: any[];
+  workflows?: string[];
+  agents?: string[];
+  scorers?: string[];
+  evals?: Record<string, any>;
+  memory_config?: Record<string, any>;
+  voice_config?: Record<string, any>;
+  input_processors?: string[];
+  output_processors?: string[];
+  default_generate_options?: Record<string, any>;
+  default_stream_options?: Record<string, any>;
+  telemetry_enabled?: boolean;
   scopes?: string[];
   created_by?: string;
 }
 
 export interface UpdateAgentRequest {
   display_name?: string;
+  description?: string;
   instructions?: string;
   model?: string;
+  max_retries?: number;
   tools?: any[];
+  workflows?: string[];
+  agents?: string[];
+  scorers?: string[];
+  evals?: Record<string, any>;
+  memory_config?: Record<string, any>;
+  voice_config?: Record<string, any>;
+  input_processors?: string[];
+  output_processors?: string[];
+  default_generate_options?: Record<string, any>;
+  default_stream_options?: Record<string, any>;
+  telemetry_enabled?: boolean;
   scopes?: string[];
   is_active?: boolean;
 }
@@ -147,6 +186,12 @@ export class AgentService {
       paramIndex++;
     }
 
+    if (request.description !== undefined) {
+      updates.push(`description = $${paramIndex}`);
+      params.push(request.description);
+      paramIndex++;
+    }
+
     if (request.instructions !== undefined) {
       updates.push(`instructions = $${paramIndex}`);
       params.push(request.instructions);
@@ -159,9 +204,81 @@ export class AgentService {
       paramIndex++;
     }
 
+    if (request.max_retries !== undefined) {
+      updates.push(`max_retries = $${paramIndex}`);
+      params.push(request.max_retries);
+      paramIndex++;
+    }
+
     if (request.tools !== undefined) {
       updates.push(`tools = $${paramIndex}`);
       params.push(JSON.stringify(request.tools));
+      paramIndex++;
+    }
+
+    if (request.workflows !== undefined) {
+      updates.push(`workflows = $${paramIndex}`);
+      params.push(JSON.stringify(request.workflows));
+      paramIndex++;
+    }
+
+    if (request.agents !== undefined) {
+      updates.push(`agents = $${paramIndex}`);
+      params.push(JSON.stringify(request.agents));
+      paramIndex++;
+    }
+
+    if (request.scorers !== undefined) {
+      updates.push(`scorers = $${paramIndex}`);
+      params.push(JSON.stringify(request.scorers));
+      paramIndex++;
+    }
+
+    if (request.evals !== undefined) {
+      updates.push(`evals = $${paramIndex}`);
+      params.push(JSON.stringify(request.evals));
+      paramIndex++;
+    }
+
+    if (request.memory_config !== undefined) {
+      updates.push(`memory_config = $${paramIndex}`);
+      params.push(JSON.stringify(request.memory_config));
+      paramIndex++;
+    }
+
+    if (request.voice_config !== undefined) {
+      updates.push(`voice_config = $${paramIndex}`);
+      params.push(JSON.stringify(request.voice_config));
+      paramIndex++;
+    }
+
+    if (request.input_processors !== undefined) {
+      updates.push(`input_processors = $${paramIndex}`);
+      params.push(JSON.stringify(request.input_processors));
+      paramIndex++;
+    }
+
+    if (request.output_processors !== undefined) {
+      updates.push(`output_processors = $${paramIndex}`);
+      params.push(JSON.stringify(request.output_processors));
+      paramIndex++;
+    }
+
+    if (request.default_generate_options !== undefined) {
+      updates.push(`default_generate_options = $${paramIndex}`);
+      params.push(JSON.stringify(request.default_generate_options));
+      paramIndex++;
+    }
+
+    if (request.default_stream_options !== undefined) {
+      updates.push(`default_stream_options = $${paramIndex}`);
+      params.push(JSON.stringify(request.default_stream_options));
+      paramIndex++;
+    }
+
+    if (request.telemetry_enabled !== undefined) {
+      updates.push(`telemetry_enabled = $${paramIndex}`);
+      params.push(request.telemetry_enabled);
       paramIndex++;
     }
 

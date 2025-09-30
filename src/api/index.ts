@@ -5,6 +5,7 @@ import { clientRoutes } from "./client-routes";
 import { applicationRoutes } from "./application-routes";
 import { agentRoutes } from "./agent-routes";
 import { workflowRoutes } from "./workflow-routes";
+import { resourceRoutes } from "./resources-routes";
 
 // Export all routes as an array for easy registration
 export const apiRoutes = [
@@ -15,4 +16,5 @@ export const apiRoutes = [
     ...mcpRoutes,
     ...clientRoutes,
     ...applicationRoutes,
+    ...resourceRoutes,
   ];

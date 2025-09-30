@@ -4,7 +4,7 @@
 
 export interface ModelDef {
   model: string;
-  provider: 'openai' | 'anthropic' | 'local';
+  provider: 'openai' | 'anthropic' | 'bedrock' | 'local';
   reasoning?: 'minimal' | 'low' | 'medium' | 'high' | undefined;
   text?: {
     verbosity?: 'low' | 'medium' | 'high';
@@ -12,6 +12,12 @@ export interface ModelDef {
 }
 
 export const MODELS = {
+  secure: {
+    model: 'claude-sonnet-4',
+    provider: 'bedrock',
+    reasoning: 'minimal' as const,
+    text: { verbosity: 'low' }
+  } as ModelDef,
   // Fast model for quick operations
   fast: {
     model: 'gpt-5-nano',

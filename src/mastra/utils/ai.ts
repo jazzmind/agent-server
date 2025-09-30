@@ -1,4 +1,6 @@
 import { openai as openaiSdk } from '@ai-sdk/openai';
+import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
+import { anthropic as anthropicSdk } from '@ai-sdk/anthropic';
 import { LanguageModelV2 } from '@ai-sdk/provider';
 import { MODELS, ModelDef } from '../config/models';
 
@@ -11,17 +13,14 @@ const anthropicModels = Object.values(MODELS)
   .filter((model: ModelDef) => model.provider === 'anthropic')
   .map((model: ModelDef) => model.model);
 
-// Optional anthropic import - only available if package is installed
-let anthropicSdk: any;
-try {
-  anthropicSdk = require('@ai-sdk/anthropic').anthropic;
-} catch {
-  console.warn('⚠️ @ai-sdk/anthropic not available');
-}
+const bedrockModels = Object.values(MODELS)
+  .filter((model: ModelDef) => model.provider === 'bedrock')
+  .map((model: ModelDef) => model.model);
+
 
 // Configuration for different AI providers
 export interface AIProvider {
-  name: 'openai' | 'anthropic' | 'local';
+  name: 'openai' | 'anthropic' | 'bedrock' | 'local';
   models: string[];
   defaultModel: string;
 }
@@ -35,6 +34,11 @@ export const AI_PROVIDERS: Record<string, AIProvider> = {
   anthropic: {
     name: 'anthropic', 
     models: anthropicModels,
+    defaultModel: MODELS.default.model,
+  },
+  bedrock: {
+    name: 'bedrock',
+    models: bedrockModels,
     defaultModel: MODELS.default.model,
   },
 };
@@ -54,16 +58,17 @@ export const ai = (model?: string, provider?: keyof typeof AI_PROVIDERS): Langua
   
   switch (selectedProvider) {
     case 'anthropic':
-      if (!anthropicSdk) {
-        console.warn('⚠️ Anthropic not available, falling back to OpenAI');
-        originalModel = openaiSdk(DEFAULT_MODEL);
-      } else {
-        originalModel = anthropicSdk(selectedModel);
-      }
+      originalModel = anthropicSdk(selectedModel);
       break;
     case 'openai':
     default:
       originalModel = openaiSdk(selectedModel);
+      break;
+    case 'bedrock':
+      originalModel = createAmazonBedrock({
+        apiKey: process.env.AWS_BEDROCK_API_KEY,
+        region: process.env.AWS_BEDROCK_REGION
+      }).languageModel(selectedModel);
       break;
   }
 
