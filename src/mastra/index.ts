@@ -47,8 +47,7 @@ const { allAgents, allWorkflows, allScorers, allTools, allNetworks } = await enh
 
 // Create base Mastra instance synchronously for telemetry extraction
 // Note: We'll enhance this with shared storage and dynamic features after initialization
-export const mastra = new Mastra({
-  deployer: new VercelDeployer(),
+const config = {
   // Start with hardcoded agents/workflows, will be enhanced with dynamic ones at runtime
   agents: allAgents,
   workflows: allWorkflows,
@@ -59,7 +58,7 @@ export const mastra = new Mastra({
     apiRoutes: apiRoutes,
     middleware: [
       {
-        handler: async (c, next) => {
+        handler: async (c: any, next: any) => {
           // Skip auth for playground API routes in development
           // const url = new URL(c.req.url);
           // const isPlaygroundRoute = url.pathname.startsWith('/api/agents') ||
@@ -85,7 +84,7 @@ export const mastra = new Mastra({
         path: "/api/*",
       },
       // Add a global request logger
-      async (c, next) => {
+      async (c: any, next: any) => {
         console.log(`${c.req.method} ${c.req.url}`);
         await next();
       },
@@ -94,7 +93,13 @@ export const mastra = new Mastra({
   telemetry: {
     enabled: false
   }
-});
+} as any;
+
+if (process.env.NODE_ENV === 'vercel') {
+  config.deployer = new VercelDeployer();
+}
+
+export const mastra = new Mastra(config);
 
 // Export dynamic loader for hot-reloading
 export { dynamicLoader };
