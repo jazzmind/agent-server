@@ -12,49 +12,54 @@ export interface ModelDef {
 }
 
 export const MODELS = {
-  secure: {
-    model: 'claude-sonnet-4',
-    provider: 'bedrock',
-    reasoning: 'minimal' as const,
-    text: { verbosity: 'low' }
+  // Secure model (external, high quality)
+  frontier: {
+    model: process.env.MODEL_FRONTIER || 'frontier',
+    provider: (process.env.MODEL_FRONTIER_PROVIDER || 'bedrock') as 'openai' | 'anthropic' | 'bedrock' | 'local',
+    reasoning: 'medium' as const,
+    text: { verbosity: 'medium' }
   } as ModelDef,
+  
   // Fast model for quick operations
-  fast: {
-    model: 'gpt-5-nano',
-    provider: 'openai',
+  // Actual: microsoft/Phi-4-multimodal-instruct (6B parameters, GPU 0)
+  chat: {
+    model: process.env.MODEL_CHAT || 'chat',
+    provider: (process.env.MODEL_CHAT_PROVIDER || 'local') as 'openai' | 'anthropic' | 'bedrock' | 'local',
     reasoning: 'minimal' as const,
     text: { verbosity: 'low' }
   } as ModelDef,
   
   // Default model for most operations
+  // Actual: Qwen/Qwen3-30B-A3B-Instruct-2507 (30B parameters, GPU 1)
   default: {
-    model: 'gpt-5-mini',
-    provider: 'openai',
+    model: process.env.MODEL_DEFAULT || 'default',
+    provider: (process.env.MODEL_DEFAULT_PROVIDER || 'local') as 'openai' | 'anthropic' | 'bedrock' | 'local',
     reasoning: 'minimal' as const,
     text: { verbosity: 'medium' }
   } as ModelDef,
   
   // Evaluation model for detailed analysis
-  evaluation: {
-    model: 'gpt-5-mini',
-    provider: 'openai',
+  analysis: {
+    model: process.env.MODEL_ANALYSIS || 'analysis',
+    provider: (process.env.MODEL_EVALUATION_PROVIDER || 'local') as 'openai' | 'anthropic' | 'bedrock' | 'local',
     reasoning: 'medium' as const,
     text: { verbosity: 'high' }
   } as ModelDef,
   
-  // Large model for complex operations
-  best: {
-    model: 'gpt-5',
-    provider: 'openai',
+  // Best model for complex operations (same as default - we only have one large model)
+  research: {
+    model: process.env.MODEL_RESEARCH || 'research',
+    provider: (process.env.MODEL_RESEARCH_PROVIDER || 'local') as 'openai' | 'anthropic' | 'bedrock' | 'local',
     reasoning: 'medium' as const,
     text: { verbosity: 'high' }
   } as ModelDef,
 
-  smartest: {
-    model: 'gpt-5',
-    provider: 'openai',
-    reasoning: 'high' as const,
-    text: { verbosity: 'high' }
+  // Smartest model for reasoning tasks (use external if available, otherwise default)
+  vision: {
+    model: process.env.MODEL_VISION || 'vision',
+    provider: (process.env.MODEL_VISION_PROVIDER || 'local') as 'openai' | 'anthropic' | 'bedrock' | 'local',
+    reasoning: 'medium' as const,
+    text: { verbosity: 'medium' }
   } as ModelDef,
 };
 
