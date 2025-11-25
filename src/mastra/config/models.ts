@@ -56,13 +56,6 @@ export const MODELS = {
     text: { verbosity: 'medium' }
   } as ModelDef,
   
-  // Evaluation model for detailed analysis
-  analysis: {
-    model: process.env.MODEL_ANALYSIS || 'analysis',
-    provider: (process.env.MODEL_ANALYSIS_PROVIDER || 'litellm') as ModelDef['provider'],
-    reasoning: 'medium' as const,
-    text: { verbosity: 'high' }
-  } as ModelDef,
   
   // Best model for complex operations
   research: {
@@ -89,13 +82,22 @@ export const MODELS = {
     text: { verbosity: 'low' }
   } as ModelDef,
   
-  // 'evaluation' is an alias for 'analysis'
+  // 'evaluation' is an alias for 'research'
   evaluation: {
-    model: process.env.MODEL_ANALYSIS || 'analysis',
-    provider: (process.env.MODEL_ANALYSIS_PROVIDER || 'litellm') as ModelDef['provider'],
+    model: process.env.MODEL_RESEARCH || 'research',
+    provider: (process.env.MODEL_RESEARCH_PROVIDER || 'litellm') as ModelDef['provider'],
     reasoning: 'medium' as const,
     text: { verbosity: 'high' }
   } as ModelDef,
+
+   // 'analysis' is also an alias for 'research'
+   analysis: {
+    model: process.env.MODEL_RESEARCH || 'research',
+    provider: (process.env.MODEL_RESEARCH_PROVIDER || 'litellm') as ModelDef['provider'],
+    reasoning: 'medium' as const,
+    text: { verbosity: 'high' }
+  } as ModelDef,
+ 
 };
 
 /**
