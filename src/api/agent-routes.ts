@@ -3,6 +3,7 @@ import { agentService, CreateAgentRequest, UpdateAgentRequest } from '../mastra/
 import { verifyAdminBearerToken } from '../mastra/auth/auth-utils';
 import { DynamicLoader } from '../mastra/services/dynamic-loader';
 import { weatherAgent } from '../mastra/agents/weather-agent';
+import { documentAgent } from '../mastra/agents/document-agent';
 
 const dynamicLoader = new DynamicLoader();
 // List all agents (both hardcoded and database)
@@ -30,7 +31,7 @@ export const listAgentsRoute = registerApiRoute('/admin/agents', {
       });
       
       // Get hardcoded agents 
-      const hardcodedAgents = { weatherAgent };
+      const hardcodedAgents = { weatherAgent, documentAgent };
       const allMastraAgents = await dynamicLoader.getAllAgents(hardcodedAgents);
       
       // Transform to consistent format with source type
@@ -165,7 +166,7 @@ export const updateAgentRoute = registerApiRoute('/admin/agents/:id', {
       const agentId = c.req.param('id');
       
       // Check if this is a hardcoded agent
-      const hardcodedAgentNames = Object.keys({ weatherAgent });
+      const hardcodedAgentNames = Object.keys({ weatherAgent, documentAgent });
       if (hardcodedAgentNames.includes(agentId)) {
         return c.json({ error: 'Cannot edit hardcoded agents' }, 400);
       }
@@ -204,7 +205,7 @@ export const deleteAgentRoute = registerApiRoute('/admin/agents/:id', {
       const agentId = c.req.param('id');
       
       // Check if this is a hardcoded agent
-      const hardcodedAgentNames = Object.keys({ weatherAgent });
+      const hardcodedAgentNames = Object.keys({ weatherAgent, documentAgent });
       if (hardcodedAgentNames.includes(agentId)) {
         return c.json({ error: 'Cannot delete hardcoded agents' }, 400);
       }

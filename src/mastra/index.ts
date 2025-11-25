@@ -9,6 +9,7 @@ if (!globalThis.crypto) {
 import { Mastra } from '@mastra/core/mastra';
 import { weatherWorkflow } from './workflows/weather-workflow';
 import { weatherAgent } from './agents/weather-agent';
+import { documentAgent } from './agents/document-agent';
 import { weatherTool } from './tools/weather-tool';
 import { VercelDeployer } from "@mastra/deployer-vercel";
 import { ConsoleLogger } from '@mastra/core/logger';
@@ -24,7 +25,7 @@ async function enhanceMastraWithDynamicFeatures(): Promise<{ allAgents: Record<s
     console.log('🔄 Loading dynamic agents, tools, workflows, scorers and networks...');
     
     // The dynamic loader will now properly wait for PostgreSQL to be ready
-    const allAgents = await dynamicLoader.getAllAgents({ weatherAgent });
+    const allAgents = await dynamicLoader.getAllAgents({ weatherAgent, documentAgent });
     const allWorkflows = await dynamicLoader.getAllWorkflows({ weatherWorkflow });
     const allScorers = await dynamicLoader.getAllScorers({  });
     const allTools = await dynamicLoader.getAllTools({ weatherTool });
