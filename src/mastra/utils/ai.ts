@@ -1,8 +1,20 @@
-import { openai as openaiSdk } from '@ai-sdk/openai';
+import { openai as openaiSdk, createOpenAI } from '@ai-sdk/openai';
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { anthropic as anthropicSdk } from '@ai-sdk/anthropic';
 import { LanguageModelV2 } from '@ai-sdk/provider';
 import { MODELS, ModelDef } from '../config/models';
+
+// Create LiteLLM provider using OpenAI SDK with custom base URL
+// LiteLLM provides an OpenAI-compatible API for local and cloud models
+const litellmBaseUrl = process.env.LITELLM_BASE_URL || 'http://10.96.200.207:4000/v1';
+const litellmApiKey = process.env.LITELLM_API_KEY || '';
+
+const litellmProvider = createOpenAI({
+  baseURL: litellmBaseUrl,
+  apiKey: litellmApiKey,
+  // LiteLLM handles model routing, so we don't need strict compatibility mode
+  compatibility: 'compatible',
+});
 
 // create a list of models from the MODELS object
 const openAIModels = Object.values(MODELS)
@@ -17,10 +29,13 @@ const bedrockModels = Object.values(MODELS)
   .filter((model: ModelDef) => model.provider === 'bedrock')
   .map((model: ModelDef) => model.model);
 
+const litellmModels = Object.values(MODELS)
+  .filter((model: ModelDef) => model.provider === 'local' || model.provider === 'litellm')
+  .map((model: ModelDef) => model.model);
 
 // Configuration for different AI providers
 export interface AIProvider {
-  name: 'openai' | 'anthropic' | 'bedrock' | 'local';
+  name: 'openai' | 'anthropic' | 'bedrock' | 'local' | 'litellm';
   models: string[];
   defaultModel: string;
 }
@@ -41,14 +56,32 @@ export const AI_PROVIDERS: Record<string, AIProvider> = {
     models: bedrockModels,
     defaultModel: MODELS.default.model,
   },
+  litellm: {
+    name: 'litellm',
+    models: litellmModels,
+    defaultModel: MODELS.default.model,
+  },
+  // 'local' is an alias for litellm (for backwards compatibility)
+  local: {
+    name: 'local',
+    models: litellmModels,
+    defaultModel: MODELS.default.model,
+  },
 };
 
-// Get the configured provider from environment or default to OpenAI
-const DEFAULT_PROVIDER = (process.env.AI_PROVIDER as keyof typeof AI_PROVIDERS) || 'openai';
-const DEFAULT_MODEL = process.env.AI_DEFAULT_MODEL || AI_PROVIDERS[DEFAULT_PROVIDER].defaultModel;
+// Get the configured provider from environment or default to litellm for local models
+const DEFAULT_PROVIDER = (process.env.AI_PROVIDER as keyof typeof AI_PROVIDERS) || 'litellm';
+const DEFAULT_MODEL = process.env.AI_DEFAULT_MODEL || AI_PROVIDERS[DEFAULT_PROVIDER]?.defaultModel || MODELS.default.model;
 
 /**
  * Get an AI SDK model instance with debug logging
+ * 
+ * Supports multiple providers:
+ * - litellm: Local models via LiteLLM proxy (default)
+ * - local: Alias for litellm
+ * - openai: Direct OpenAI API
+ * - anthropic: Direct Anthropic API
+ * - bedrock: AWS Bedrock
  */
 export const ai = (model?: string, provider?: keyof typeof AI_PROVIDERS): LanguageModelV2 => {
   const selectedProvider = provider || DEFAULT_PROVIDER;
@@ -61,7 +94,6 @@ export const ai = (model?: string, provider?: keyof typeof AI_PROVIDERS): Langua
       originalModel = anthropicSdk(selectedModel);
       break;
     case 'openai':
-    default:
       originalModel = openaiSdk(selectedModel);
       break;
     case 'bedrock':
@@ -69,6 +101,16 @@ export const ai = (model?: string, provider?: keyof typeof AI_PROVIDERS): Langua
         apiKey: process.env.AWS_BEDROCK_API_KEY,
         region: process.env.AWS_BEDROCK_REGION
       }).languageModel(selectedModel);
+      break;
+    case 'litellm':
+    case 'local':
+    default:
+      // Use LiteLLM provider for local models
+      // LiteLLM routes to the appropriate backend (Ollama, vLLM, etc.)
+      if (!litellmApiKey) {
+        console.warn('⚠️ LITELLM_API_KEY not set - LiteLLM calls may fail');
+      }
+      originalModel = litellmProvider(selectedModel);
       break;
   }
 
@@ -79,26 +121,33 @@ export const ai = (model?: string, provider?: keyof typeof AI_PROVIDERS): Langua
       
       if (typeof original === 'function') {
         return async function(...args: any[]) {
-          console.log(`🤖 [AI-${selectedProvider.toUpperCase()}] Calling ${String(prop)}...`);
-          console.log(`📝 [AI-${selectedProvider.toUpperCase()}] Model: ${selectedModel}`);
+          const providerLabel = selectedProvider.toUpperCase();
+          console.log(`🤖 [AI-${providerLabel}] Calling ${String(prop)}...`);
+          console.log(`📝 [AI-${providerLabel}] Model: ${selectedModel}`);
+          if (selectedProvider === 'litellm' || selectedProvider === 'local') {
+            console.log(`🔗 [AI-${providerLabel}] Base URL: ${litellmBaseUrl}`);
+          }
           
           const startTime = Date.now();
           try {
             const result = await original.apply(target, args);
             const duration = Date.now() - startTime;
-            console.log(`✅ [AI-${selectedProvider.toUpperCase()}] ${String(prop)} completed in ${duration}ms`);
+            console.log(`✅ [AI-${providerLabel}] ${String(prop)} completed in ${duration}ms`);
             
             if (result?.text) {
-              console.log(`📊 [AI-${selectedProvider.toUpperCase()}] Response length: ${result.text.length}`);
-              console.log(`📄 [AI-${selectedProvider.toUpperCase()}] Response preview: ${result.text.substring(0, 200)}...`);
+              console.log(`📊 [AI-${providerLabel}] Response length: ${result.text.length}`);
+              console.log(`📄 [AI-${providerLabel}] Response preview: ${result.text.substring(0, 200)}...`);
             }
             
             return result;
           } catch (error: any) {
             const duration = Date.now() - startTime;
-            console.error(`❌ [AI-${selectedProvider.toUpperCase()}] ${String(prop)} failed after ${duration}ms`);
-            console.error(`❌ [AI-${selectedProvider.toUpperCase()}] Error: ${error?.message}`);
-            console.error(`❌ [AI-${selectedProvider.toUpperCase()}] Full error:`, error);
+            console.error(`❌ [AI-${providerLabel}] ${String(prop)} failed after ${duration}ms`);
+            console.error(`❌ [AI-${providerLabel}] Error: ${error?.message}`);
+            if (selectedProvider === 'litellm' || selectedProvider === 'local') {
+              console.error(`❌ [AI-${providerLabel}] Check LiteLLM is running at ${litellmBaseUrl}`);
+            }
+            console.error(`❌ [AI-${providerLabel}] Full error:`, error);
             throw error;
           }
         };
@@ -138,3 +187,12 @@ export const getAvailableModels = (provider?: keyof typeof AI_PROVIDERS): string
   const selectedProvider = provider || DEFAULT_PROVIDER;
   return AI_PROVIDERS[selectedProvider]?.models || [];
 };
+
+/**
+ * Get LiteLLM configuration for debugging
+ */
+export const getLiteLLMConfig = () => ({
+  baseUrl: litellmBaseUrl,
+  hasApiKey: !!litellmApiKey,
+  isDefault: DEFAULT_PROVIDER === 'litellm' || DEFAULT_PROVIDER === 'local',
+});

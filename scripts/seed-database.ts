@@ -344,6 +344,122 @@ Focus on creating templates that will significantly improve summary quality and 
     };
 
     // =======================================================================
+    // RAG DOCUMENT AGENTS (for search API integration)
+    // =======================================================================
+
+    // Document Assistant Agent - RAG-enabled document Q&A
+    const documentAssistantAgent = {
+      name: 'documentAgent',
+      display_name: 'Document Assistant',
+      instructions: `You are an intelligent document assistant that helps users find information in their uploaded documents.
+
+## Your Capabilities
+
+1. **Document Search**: You can search through the user's documents to find relevant information
+2. **Question Answering**: You provide accurate answers based on document content
+3. **Citation**: You always cite which document and section your information comes from
+
+## How to Answer Questions
+
+When a user asks a question:
+
+1. **Search First**: ALWAYS use the document-search tool to find relevant content
+   - First, get an access token using the getDocumentAccessToken tool
+   - Then use the document-search tool with that token and the user's query
+   
+2. **Use Retrieved Context**: Base your answer ONLY on the document content returned by the search
+   - If the search returns relevant results, use them to answer the question
+   - Quote or paraphrase the relevant sections
+   - Cite the source document (filename, page number if available)
+
+3. **Be Honest About Limitations**:
+   - If no relevant documents are found, tell the user
+   - If the answer is not in the documents, say so
+   - Never make up information not present in the documents
+
+## Response Format
+
+When answering from documents:
+- Start with a direct answer to the question
+- Provide supporting details from the documents
+- End with source citations
+
+Example:
+"Based on your documents, [answer]. According to [Document Name], [relevant quote/detail]. (Source: filename.pdf, Page X)"
+
+## Tool Usage Flow
+
+1. Call getDocumentAccessToken to get an authentication token
+2. Call document-search with:
+   - authToken: the token from step 1
+   - query: the user's question or search terms
+   - limit: 5 (default, increase for more comprehensive answers)
+   - mode: "hybrid" (recommended for best results)
+3. Use the returned context to formulate your answer
+
+Remember: Always search the documents before answering. Never guess or make assumptions about document content.`,
+      model: MODELS.default.model,
+      tools: JSON.stringify(['document-search', 'getDocumentAccessToken']),
+      scopes: ['agent.execute', 'documents.read'],
+      is_active: true,
+      created_by: 'system-seed'
+    };
+
+    // RAG Chat Agent - General purpose RAG-enabled chat
+    const ragChatAgent = {
+      name: 'ragChatAgent',
+      display_name: 'RAG Chat Assistant',
+      instructions: `You are a helpful AI assistant with access to the user's documents.
+
+## Capabilities
+
+You can help users by:
+1. Answering questions about their uploaded documents
+2. Finding specific information across multiple documents
+3. Summarizing document content
+4. Comparing information between documents
+
+## When to Search Documents
+
+Search the user's documents when they:
+- Ask about specific topics that might be in their files
+- Reference "my documents", "my files", or specific document names
+- Need factual information that could be in their uploads
+- Ask you to find, locate, or look up something
+
+## How to Use Document Search
+
+1. Get an access token: Call getDocumentAccessToken first
+2. Search for relevant content: Use document-search with the token
+3. Synthesize the answer: Combine search results to answer the question
+4. Cite your sources: Always mention which document the information came from
+
+## Response Guidelines
+
+- Be conversational but accurate
+- Always cite document sources when using retrieved content
+- If documents don't contain the answer, say so and offer to help differently
+- For complex questions, break down the search into multiple queries if needed
+
+## Example Interaction
+
+User: "What were the key findings in my quarterly report?"
+
+You should:
+1. Call getDocumentAccessToken
+2. Call document-search with query "key findings quarterly report"
+3. Review the returned context
+4. Provide a summary with citations
+
+Remember: You have access to powerful search capabilities. Use them to provide accurate, sourced answers.`,
+      model: MODELS.default.model,
+      tools: JSON.stringify(['document-search', 'getDocumentAccessToken']),
+      scopes: ['agent.execute', 'documents.read', 'chat.general'],
+      is_active: true,
+      created_by: 'system-seed'
+    };
+
+    // =======================================================================
     // ORIGINAL SAMPLE AGENTS (keeping for compatibility)
     // =======================================================================
 
@@ -412,8 +528,11 @@ Provide well-structured, evidence-based insights with proper citations and clear
       created_by: 'system-seed'
     };
 
-    // Insert all agents (Document Intelligence + Original samples)
+    // Insert all agents (RAG + Document Intelligence + Original samples)
     const agents = [
+      // RAG Document Agents
+      documentAssistantAgent,
+      ragChatAgent,
       // Document Intelligence Agents
       rfpAnalysisAgent,
       rfpAnalyzerAgent,
@@ -461,6 +580,63 @@ Provide well-structured, evidence-based insights with proper citations and clear
         console.error(`❌ Failed to create agent '${agent.name}':`, error);
       }
     }
+
+    // =======================================================================
+    // RAG DOCUMENT SEARCH TOOLS (for search API integration)
+    // =======================================================================
+
+    // Document Search Tool - RAG integration with busibox search API
+    const documentSearchTool = {
+      name: 'document-search',
+      display_name: 'Document Search',
+      description: `Search through the user's uploaded documents to find relevant information.
+Use this tool when:
+- The user asks a question that might be answered by their documents
+- You need to find specific information from uploaded files
+- You want to provide context-aware answers based on the user's data
+
+The tool returns relevant text chunks from documents that match the query.
+Always use the returned text to inform your response - cite the source document when possible.
+
+IMPORTANT: You must provide the authToken parameter to search the user's documents.`,
+      input_schema: JSON.stringify({
+        type: 'object',
+        properties: {
+          authToken: { type: 'string', description: 'The user authentication token (JWT) for accessing their documents' },
+          query: { type: 'string', description: 'The search query - use natural language to describe what you are looking for' },
+          limit: { type: 'number', description: 'Maximum number of results to return (default: 5, max: 50)', default: 5 },
+          mode: { type: 'string', enum: ['hybrid', 'semantic', 'keyword'], description: 'Search mode: hybrid (recommended), semantic (meaning-based), or keyword (exact match)', default: 'hybrid' },
+          fileIds: { type: 'array', items: { type: 'string' }, description: 'Optional: limit search to specific file IDs' }
+        },
+        required: ['authToken', 'query']
+      }),
+      execute_code: `
+        // This tool uses the hardcoded implementation from document-search-tool.ts
+        // The execute_code here is a placeholder for documentation purposes
+        throw new Error("Use hardcoded tool implementation from src/mastra/tools/document-search-tool.ts");
+      `,
+      scopes: ['tool.execute', 'documents.read', 'search.execute'],
+      is_active: true,
+      created_by: 'system-seed'
+    };
+
+    // Get Document Access Token Tool
+    const getDocumentAccessTokenTool = {
+      name: 'getDocumentAccessToken',
+      display_name: 'Get Document Access Token',
+      description: 'Get an access token for searching user documents. Call this first before using document-search.',
+      input_schema: JSON.stringify({
+        type: 'object',
+        properties: {}
+      }),
+      execute_code: `
+        // This tool uses the hardcoded implementation from document-agent.ts
+        throw new Error("Use hardcoded tool implementation from src/mastra/agents/document-agent.ts");
+      `,
+      scopes: ['tool.execute', 'auth.token'],
+      is_active: true,
+      created_by: 'system-seed'
+    };
 
     // =======================================================================
     // DOCUMENT INTELLIGENCE TOOLS (from Summarizer project)
@@ -538,6 +714,9 @@ Provide well-structured, evidence-based insights with proper citations and clear
 
     // Also seed some sample tools that the agents reference
     const sampleTools = [
+      // RAG Document Search Tools
+      documentSearchTool,
+      getDocumentAccessTokenTool,
       // Document Intelligence Tool
       documentIngestionTool,
       // Original Sample Tools
@@ -647,18 +826,28 @@ Provide well-structured, evidence-based insights with proper citations and clear
 
     console.log('\n🎉 Database seeding completed successfully!');
     console.log('\nCreated agents:');
-    console.log('  - RFP Analysis Agent (rfp-analysis-agent)');
-    console.log('  - RFP Analyzer (rfp-analyzer-agent)');
-    console.log('  - Template Generator Agent (template-generator-agent)');
-    console.log('  - Summary Comparison Agent (summary-comparison-agent)');
-    console.log('  - Template Improvement Agent (template-improvement-agent)');
-    console.log('  - Code Review Assistant (code-review-agent)');
-    console.log('  - File Organization Assistant (file-organizer-agent)');
-    console.log('  - Research Assistant (research-assistant-agent)');
+    console.log('  📚 RAG Document Agents:');
+    console.log('    - Document Assistant (documentAgent) - RAG-enabled document Q&A');
+    console.log('    - RAG Chat Assistant (ragChatAgent) - General purpose with document search');
+    console.log('  📋 Document Intelligence Agents:');
+    console.log('    - RFP Analysis Agent (rfp-analysis-agent)');
+    console.log('    - RFP Analyzer (rfp-analyzer-agent)');
+    console.log('    - Template Generator Agent (template-generator-agent)');
+    console.log('    - Summary Comparison Agent (summary-comparison-agent)');
+    console.log('    - Template Improvement Agent (template-improvement-agent)');
+    console.log('  🔧 Sample Agents:');
+    console.log('    - Code Review Assistant (code-review-agent)');
+    console.log('    - File Organization Assistant (file-organizer-agent)');
+    console.log('    - Research Assistant (research-assistant-agent)');
     console.log('\nCreated tools:');
-    console.log('  - Document Ingestion Processor (document-ingestion-processor)');
-    console.log('  - Code Analyzer (code-analyzer)');
-    console.log('  - File Analyzer (file-analyzer)');
+    console.log('  🔍 RAG Tools:');
+    console.log('    - Document Search (document-search) - Search user documents via RAG');
+    console.log('    - Get Document Access Token (getDocumentAccessToken) - Auth for doc search');
+    console.log('  📄 Document Intelligence Tools:');
+    console.log('    - Document Ingestion Processor (document-ingestion-processor)');
+    console.log('  🛠️  Sample Tools:');
+    console.log('    - Code Analyzer (code-analyzer)');
+    console.log('    - File Analyzer (file-analyzer)');
     
     // =======================================================================
     // DOCUMENT INTELLIGENCE SCORERS (from Summarizer project)
