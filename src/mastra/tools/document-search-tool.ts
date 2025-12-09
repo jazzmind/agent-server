@@ -84,13 +84,13 @@ async function fetchWithRetry(
   throw lastError || new Error('Unknown fetch error');
 }
 
-async function mintScopedToken(roles: any[]): Promise<string | null> {
+async function mintScopedToken(userId: string | undefined, roles: any[]): Promise<string | null> {
   try {
     const res = await fetch(AUTHZ_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        userId: 'agent-user', // TODO: pass real user id when available
+        userId: userId || 'agent-user',
         roles,
       }),
     });
@@ -126,6 +126,7 @@ Use this tool when:
 - You want to provide context-aware answers based on the user's data`,
   inputSchema: z.object({
     authToken: z.string().optional().describe('User JWT. Optional if service key is configured.'),
+    userId: z.string().optional().describe('User id for authz token minting'),
     roles: z.array(z.object({
       id: z.string(),
       name: z.string().optional(),
@@ -149,12 +150,12 @@ Use this tool when:
     error: z.string().optional(),
   }),
   execute: async ({ context }): Promise<SearchToolOutput> => {
-    const { authToken, query, limit = 5, mode = 'hybrid', roles, fileIds } = context;
+    const { authToken, userId, query, limit = 5, mode = 'hybrid', roles, fileIds } = context;
     console.log(`🔍 [DOCUMENT-SEARCH] Searching: "${query.substring(0, 100)}${query.length > 100 ? '...' : ''}" (mode=${mode}, limit=${limit})`);
 
     let bearer: string | undefined = authToken && authToken.length > 0 ? (authToken.startsWith('Bearer ') ? authToken : `Bearer ${authToken}`) : undefined;
     if ((!bearer) && roles && roles.length > 0) {
-      const minted = await mintScopedToken(roles);
+      const minted = await mintScopedToken(userId, roles);
       if (minted) bearer = minted;
     }
     if (!bearer && !SEARCH_API_SERVICE_KEY) {

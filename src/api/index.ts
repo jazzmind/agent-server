@@ -7,6 +7,7 @@ import { agentRoutes } from "./agent-routes";
 import { workflowRoutes } from "./workflow-routes";
 import { resourceRoutes } from "./resources-routes";
 import { healthRoutes } from "./health-routes";
+import { chatRoutes } from "./chat-routes";
 
 // Export all routes as an array for easy registration
 export const apiRoutes = [
@@ -19,4 +20,5 @@ export const apiRoutes = [
     ...clientRoutes,
     ...applicationRoutes,
     ...resourceRoutes,
+    ...chatRoutes,
   ];

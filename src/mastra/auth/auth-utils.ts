@@ -67,6 +67,43 @@ export async function verifyClientBearerToken(authorizationHeader?: string, requ
   return verifyBearerToken(authorizationHeader, requiredScopes);
 }
 
+/**
+ * Verify end-user JWT issued by ai-portal (HS256 shared secret).
+ * Returns user payload (id, email, roles) if valid.
+ */
+export async function verifyUserBearerToken(authorizationHeader?: string) {
+  if (!authorizationHeader?.startsWith('Bearer ')) {
+    throw new Error('Missing or invalid authorization header');
+  }
+
+  const token = authorizationHeader.slice('Bearer '.length);
+  const secret = process.env.SSO_JWT_SECRET;
+  if (!secret) {
+    throw new Error('SSO_JWT_SECRET not configured');
+  }
+
+  try {
+    const { payload } = await jwtVerify(
+      token,
+      new TextEncoder().encode(secret),
+      {
+        issuer: process.env.JWT_ISSUER || 'ai-portal',
+        audience: process.env.JWT_AUDIENCE || 'agent-server',
+      }
+    );
+
+    const { sub, id, email, roles } = payload as any;
+    return {
+      userId: id || sub,
+      email,
+      roles: Array.isArray(roles) ? roles : [],
+      raw: payload,
+    };
+  } catch (error: any) {
+    throw new Error(`User token verification failed: ${error.message}`);
+  }
+}
+
 // Verify Bearer token for admin endpoints
 export async function verifyBearerToken(authorizationHeader?: string, requiredScopes?: string[]) {
   if (!authorizationHeader?.startsWith('Bearer ')) {

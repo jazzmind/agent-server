@@ -4,6 +4,10 @@ import { verifyAdminBearerToken } from '../mastra/auth/auth-utils';
 import { DynamicLoader } from '../mastra/services/dynamic-loader';
 import { weatherAgent } from '../mastra/agents/weather-agent';
 import { documentAgent } from '../mastra/agents/document-agent';
+import { webSearchAgent } from '../mastra/agents/web-search-agent';
+import { ragSearchAgent } from '../mastra/agents/rag-search-agent';
+import { attachmentAgent } from '../mastra/agents/attachment-agent';
+import { chatAgent } from '../mastra/agents/chat-agent';
 
 const dynamicLoader = new DynamicLoader();
 // List all agents (both hardcoded and database)
@@ -31,7 +35,7 @@ export const listAgentsRoute = registerApiRoute('/admin/agents', {
       });
       
       // Get hardcoded agents 
-      const hardcodedAgents = { weatherAgent, documentAgent };
+      const hardcodedAgents = { weatherAgent, documentAgent, webSearchAgent, ragSearchAgent, attachmentAgent, chatAgent };
       const allMastraAgents = await dynamicLoader.getAllAgents(hardcodedAgents);
       
       // Transform to consistent format with source type
