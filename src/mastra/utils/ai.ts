@@ -70,8 +70,17 @@ export const AI_PROVIDERS: Record<string, AIProvider> = {
 };
 
 // Get the configured provider from environment or default to litellm for local models
-const DEFAULT_PROVIDER = (process.env.AI_PROVIDER as keyof typeof AI_PROVIDERS) || 'litellm';
-const DEFAULT_MODEL = process.env.AI_DEFAULT_MODEL || AI_PROVIDERS[DEFAULT_PROVIDER]?.defaultModel || MODELS.default.model;
+let DEFAULT_PROVIDER = (process.env.AI_PROVIDER as keyof typeof AI_PROVIDERS) || 'litellm';
+
+// Validate that the provider exists in AI_PROVIDERS
+if (!AI_PROVIDERS[DEFAULT_PROVIDER]) {
+  console.error(`❌ Invalid AI_PROVIDER: "${DEFAULT_PROVIDER}". Available providers: ${Object.keys(AI_PROVIDERS).join(', ')}`);
+  console.error(`   Using fallback provider: litellm`);
+  // Force fallback to litellm if invalid provider
+  DEFAULT_PROVIDER = 'litellm';
+}
+
+const DEFAULT_MODEL = process.env.AI_DEFAULT_MODEL || AI_PROVIDERS[DEFAULT_PROVIDER].defaultModel || MODELS.default.model;
 
 /**
  * Get an AI SDK model instance with debug logging
