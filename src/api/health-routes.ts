@@ -8,9 +8,8 @@ import { getSharedPostgresStore } from '../mastra/utils/database';
  * Returns system health status including database connectivity
  */
 export const healthRoutes = [
-  registerApiRoute({
+  registerApiRoute('/api/health', {
     method: 'GET',
-    path: '/api/health',
     handler: async () => {
       const startTime = Date.now();
       const health = {
